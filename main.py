@@ -3,6 +3,8 @@ The text brush entry point.
 """
 
 import argparse
+import datetime
+import time
 
 import torch
 
@@ -11,6 +13,14 @@ from torch import nn
 from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
 from textbrush.optimizers import modeltrainer
+
+MAX_TOKENS = 8
+EMBEDDED_DIMENSION = 16
+BATCH_SIZE = 32
+LEARNING_RATE = 1e-3
+EPOCHS = 100
+MAX_TRAINING_ITERATIONS = 1000
+TEXT_GENERATION_LENGTH = 1000
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -25,13 +35,13 @@ def main():
     """
     parse()
 
-    dataset = tinyshakespeare.TinyShakespeare(train=True)
-    model = gpt.GPT(vocab_size=dataset.vocab_size, embed_dim=16)
+    dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
+    model = gpt.GPT(vocab_size=dataset.vocab_size, embed_dim=EMBEDDED_DIMENSION)
     prompt = "\n"
 
-    print(generate_text(prompt, dataset, model, 100))
-    train_model(dataset, model)
-    print(generate_text(prompt, dataset, model, 1000))
+    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
+    train_model(model, dataset)
+    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH))
 
 
 def parse():
@@ -56,25 +66,32 @@ def generate_text(prompt, dataset, model, length):
     return text
 
 
-def train_model(dataset, model):
+def train_model(model, dataset):
     """
     Train a GPT model on a dataset.
     """
     loss_function = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     trainer = modeltrainer.train_model(
         model=model,
         dataset=dataset,
         loss_function=loss_function,
         optimizer=optimizer,
-        num_epochs=1,
-        batch_size=32,
+        num_epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
     )
+    print(
+        f"\nStarting training | Epochs: {EPOCHS} | Max iterations: {MAX_TRAINING_ITERATIONS} | "
+        f"Batch size: {BATCH_SIZE} | Samples: {len(dataset)} | Learning rate: {LEARNING_RATE}"
+    )
+    start = time.time()
     for i, loss in enumerate(trainer):
-        if i > 1000:
+        if i > MAX_TRAINING_ITERATIONS:
             break
-        if i % 100 == 0:
+        if i % (MAX_TRAINING_ITERATIONS // 10) == 0:
             print(loss)
+    elapsed_time = round(time.time() - start)
+    print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
 
 
 if __name__ == "__main__":
