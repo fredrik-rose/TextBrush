@@ -17,6 +17,7 @@ def train_model(
     optimizer: optim.Optimizer,
     num_epochs: int,
     batch_size: int,
+    device: str,
 ) -> Generator[float, None, None]:
     """
     Train a model.
@@ -24,10 +25,13 @@ def train_model(
 
     data_loader = torchdata.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
+    model.to(device)
     model.train()
     for _ in range(num_epochs):
         for x, y_true in data_loader:
             optimizer.zero_grad()
+            x = x.to(device)
+            y_true = y_true.to(device)
             y_pred = model(x)
 
             # TODO: Do this somewhere else.

@@ -65,11 +65,12 @@ class GPT(nn.Module):
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 
-    def generate(self, prompt: list[int]) -> Generator[int, None, None]:
+    def generate(self, prompt: list[int], device: str = "cpu") -> Generator[int, None, None]:
         """
         Generate text (tokens), given a prompt (of tokens).
         """
-        tokens = torch.tensor(prompt, dtype=torch.long).unsqueeze(0)  # (B, T)
+        tokens = torch.tensor(prompt, dtype=torch.long, device=device).unsqueeze(0)  # (B, T)
+        self.to(device)
         while True:
             logits = self(tokens)  # (B, T) -> (B, T, C)
             logits = logits[:, -1, :]  # (B, T, C) -> (B, C)

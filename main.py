@@ -35,12 +35,14 @@ def main():
     """
     parse()
 
+    device = get_device()
+    print(f"Using '{device}' device.")
     dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
     model = gpt.GPT(vocab_size=dataset.vocab_size, embed_dim=EMBEDDED_DIMENSION)
     prompt = "\n"
 
     print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
-    train_model(model, dataset)
+    train_model(model, dataset, device)
     print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH))
 
 
@@ -56,6 +58,14 @@ def parse():
     return args
 
 
+def get_device():
+    """
+    get the "best" available device.
+    """
+    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    return device
+
+
 def generate_text(prompt, dataset, model, length):
     """
     Generate text given a prompt.
@@ -66,7 +76,7 @@ def generate_text(prompt, dataset, model, length):
     return text
 
 
-def train_model(model, dataset):
+def train_model(model, dataset, device):
     """
     Train a GPT model on a dataset.
     """
@@ -79,6 +89,7 @@ def train_model(model, dataset):
         optimizer=optimizer,
         num_epochs=EPOCHS,
         batch_size=BATCH_SIZE,
+        device=device,
     )
     print(
         f"\nStarting training | Epochs: {EPOCHS} | Max iterations: {MAX_TRAINING_ITERATIONS} | "
