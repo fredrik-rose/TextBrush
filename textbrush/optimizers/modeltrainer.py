@@ -33,12 +33,6 @@ def train_model(
             x = x.to(device)
             y_true = y_true.to(device)
             y_pred = model(x)
-
-            # TODO: Do this somewhere else.
-            B, N, C = y_pred.shape
-            y_pred = y_pred.reshape(B * N, C)
-            y_true = y_true.reshape(B * N)
-
             loss = loss_function(y_pred, y_true)
             loss.backward()
             optimizer.step()

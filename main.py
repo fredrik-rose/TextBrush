@@ -80,7 +80,23 @@ def train_model(model, dataset, device):
     """
     Train a GPT model on a dataset.
     """
-    loss_function = nn.CrossEntropyLoss()
+
+    class FlattenedCrossEntropy(nn.Module):
+        """
+        Adjust dimensions to use the ordinary cross entropy loss.
+        """
+
+        def __init__(self):
+            super().__init__()
+            self.loss = nn.CrossEntropyLoss()
+
+        def forward(self, y_pred, y_true):  # pylint: disable=missing-function-docstring
+            batch, tokens, classes = y_pred.shape
+            y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
+            y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
+            return self.loss(y_pred, y_true)
+
+    loss_function = FlattenedCrossEntropy()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     trainer = modeltrainer.train_model(
         model=model,
