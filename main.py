@@ -4,6 +4,8 @@ The text brush entry point.
 
 import argparse
 
+from textbrush.datasets import tinyshakespeare
+
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
     """
@@ -16,6 +18,8 @@ def main():
     Entry point.
     """
     parse()
+    dataset = tinyshakespeare.TinyShakespeare(train=True)
+    print(dataset.decode(dataset[0][0]))
 
 
 def parse():
