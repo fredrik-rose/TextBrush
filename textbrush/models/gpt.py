@@ -4,7 +4,10 @@ The GPT (generative pre-trained transformer) model.
 A LLM (large language model) for text generation.
 """
 
+from typing import Generator
+
 import torch
+import torch.nn.functional as F
 
 from torch import nn
 
@@ -61,3 +64,16 @@ class GPT(nn.Module):
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
+
+    def generate(self, prompt: list[int]) -> Generator[int, None, None]:
+        """
+        Generate text (tokens), given a prompt (of tokens).
+        """
+        tokens = torch.tensor(prompt, dtype=torch.long).unsqueeze(0)  # (B, T)
+        while True:
+            logits = self(tokens)  # (B, T) -> (B, T, C)
+            logits = logits[:, -1, :]  # (B, T, C) -> (B, C)
+            probs = F.softmax(logits, dim=-1)  # (B, C)
+            next_token = torch.multinomial(probs, num_samples=1)  # (B, C) -> (B, 1)
+            tokens = torch.cat((tokens, next_token), dim=-1)  # (B, T+1)
+            yield next_token.item()
