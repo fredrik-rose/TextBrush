@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Pickles
+*.pkl
+
+# PyCharm
+.idea/
+
+# Tests
+.cache
+
+# Jupter Notebook
+.ipynb_checkpoints
