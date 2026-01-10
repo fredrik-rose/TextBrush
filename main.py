@@ -5,6 +5,7 @@ The text brush entry point.
 import argparse
 
 from textbrush.datasets import tinyshakespeare
+from textbrush.models import gpt
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -18,8 +19,16 @@ def main():
     Entry point.
     """
     parse()
+
     dataset = tinyshakespeare.TinyShakespeare(train=True)
-    print(dataset.decode(dataset[0][0]))
+    model = gpt.GPT(vocab_size=dataset.vocab_size, embed_dim=16)
+
+    x, _ = dataset[0]
+    output = model(x)
+
+    print(f"Input: {dataset.decode(x.tolist())}")
+    print(f"Input shape: {x.shape}")
+    print(f"Output shape: {output.shape}")
 
 
 def parse():
