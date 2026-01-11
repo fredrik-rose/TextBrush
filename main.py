@@ -39,7 +39,9 @@ def main():
     device = get_device()
     print(f"Using '{device}' device.")
     dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
-    model = gpt.GPT(vocab_size=dataset.vocab_size, num_heads=NUM_HEADS, embed_dim=EMBEDDED_DIMENSION)
+    model = gpt.GPT(
+        vocab_size=dataset.vocab_size, num_tokens=MAX_TOKENS, num_heads=NUM_HEADS, embed_dim=EMBEDDED_DIMENSION
+    )
     prompt = "\n"
 
     print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))

@@ -8,6 +8,26 @@ import torch.nn.functional as F
 from torch import nn
 
 
+class PositionalEncoder(nn.Module):
+    """
+    Positional encoding with learnable embeddings.
+    """
+
+    def __init__(self, num_tokens: int, embed_dim: int):
+        super().__init__()
+
+        self.pos_embed = nn.parameter.Parameter(torch.zeros(num_tokens, embed_dim))
+
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        nn.init.trunc_normal_(self.pos_embed, std=0.02)  # Use a small std to not dominate early in the training.
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+        x = x + self.pos_embed[: x.size(1)]
+        return x
+
+
 class TransformerBlock(nn.Module):
     """
     A standard self-attention transformer block using pre-LayerNorm.

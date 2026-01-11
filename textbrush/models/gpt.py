@@ -44,12 +44,17 @@ class GPT(nn.Module):
     Generative pre-trained transformer.
     """
 
-    def __init__(self, vocab_size: int, num_heads: int, embed_dim: int):
+    def __init__(self, vocab_size: int, num_tokens: int, num_heads: int, embed_dim: int):
         super().__init__()
 
+        self.max_num_tokens = num_tokens
         self.token_embedding = TextEmbedder(
             vocab_size=vocab_size,
             embed_dim=embed_dim,
+        )
+        self.pos_encoder = transformer.PositionalEncoder(
+            embed_dim=embed_dim,
+            num_tokens=num_tokens,
         )
         self.transformer = transformer.TransformerBlock(
             num_heads=num_heads,
@@ -71,6 +76,7 @@ class GPT(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
         num_tokens = x.size(1)
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
+        x = self.pos_encoder(x)  # (B, T, D)
         x = self.transformer(x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
@@ -82,6 +88,7 @@ class GPT(nn.Module):
         tokens = torch.tensor(prompt, dtype=torch.long, device=device).unsqueeze(0)  # (B, T)
         self.to(device)
         while True:
+            tokens = tokens[:, -self.max_num_tokens :]
             logits = self(tokens)  # (B, T) -> (B, T, C)
             logits = logits[:, -1, :]  # (B, T, C) -> (B, C)
             probs = F.softmax(logits, dim=-1)  # (B, C)
