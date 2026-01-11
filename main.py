@@ -16,7 +16,7 @@ from textbrush.optimizers import modeltrainer
 
 MAX_TOKENS = 8
 NUM_HEADS = 2
-EMBEDDED_DIMENSION = 16
+EMBEDDED_DIMENSION = 32
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 EPOCHS = 100
