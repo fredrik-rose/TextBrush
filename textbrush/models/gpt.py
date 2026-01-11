@@ -60,6 +60,8 @@ class GPT(nn.Module):
             out_features=vocab_size,
         )
 
+        self.register_buffer("mask", torch.tril(torch.ones(num_tokens, num_tokens), diagonal=0))
+
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
@@ -67,8 +69,9 @@ class GPT(nn.Module):
         nn.init.zeros_(self.lm_head.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+        num_tokens = x.size(1)
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
-        x = self.transformer(x, x, x)  # (B, T, D)
+        x = self.transformer(query=x, key=x, value=x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 

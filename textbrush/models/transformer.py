@@ -47,12 +47,12 @@ class MultiHeadAttention(nn.Module):
         init_xavier_uniform(self.out_proj)
 
     def forward(  # pylint: disable=missing-function-docstring
-        self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor
+        self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask: torch.Tensor | None = None
     ) -> torch.Tensor:
         query = split_heads(self.query_proj(query), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         key = split_heads(self.key_proj(key), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         value = split_heads(self.value_proj(value), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
-        x = merge_heads(scaled_dot_product_attention(query, key, value))  # (B, H, T, Dh) -> (B, T, D)
+        x = merge_heads(scaled_dot_product_attention(query, key, value, mask))  # (B, H, T, Dh) -> (B, T, D)
         x = self.out_proj(x)  # (B, T, D)
         return x
 
@@ -90,12 +90,16 @@ def merge_heads(tensor: torch.Tensor) -> torch.Tensor:
     return tensor
 
 
-def scaled_dot_product_attention(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor) -> torch.Tensor:
+def scaled_dot_product_attention(
+    query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask: torch.Tensor | None = None
+) -> torch.Tensor:
     """
     Scaled dot-product attention.
     """
     d_k = query.size(-1)
     attention_score = (query @ torch.transpose(key, -1, -2)) / (d_k**0.5)  # (B*, T, D) @ (B*, D, T) -> (B*, T, T)
+    if mask is not None:
+        attention_score = attention_score.masked_fill(mask == 0, float("-inf"))  # (B*, T, T)
     attention_weight = F.softmax(attention_score, dim=-1)  # (B*, T, T)
     output = attention_weight @ value  # (B*, T, T) @ (B*, T, D) -> (B*, T, D)
     return output
