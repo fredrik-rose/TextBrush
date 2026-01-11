@@ -11,6 +11,8 @@ import torch.nn.functional as F
 
 from torch import nn
 
+from . import transformer
+
 
 class TextEmbedder(nn.Module):
     """
@@ -42,11 +44,15 @@ class GPT(nn.Module):
     Generative pre-trained transformer.
     """
 
-    def __init__(self, vocab_size: int, embed_dim: int):
+    def __init__(self, vocab_size: int, num_heads: int, embed_dim: int):
         super().__init__()
 
         self.token_embedding = TextEmbedder(
             vocab_size=vocab_size,
+            embed_dim=embed_dim,
+        )
+        self.transformer = transformer.MultiHeadAttention(
+            num_heads=num_heads,
             embed_dim=embed_dim,
         )
         self.lm_head = nn.Linear(
@@ -62,6 +68,7 @@ class GPT(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
+        x = self.transformer(x, x, x)  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 
