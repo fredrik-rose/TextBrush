@@ -8,6 +8,27 @@ import torch.nn.functional as F
 from torch import nn
 
 
+class TransformerBlock(nn.Module):
+    """
+    A standard self-attention transformer block using pre-LayerNorm.
+    """
+
+    def __init__(self, num_heads: int, embed_dim: int, bias: bool = True):
+        super().__init__()
+
+        self.multi_head_attention = MultiHeadAttention(
+            num_heads=num_heads,
+            embed_dim=embed_dim,
+            bias=bias,
+        )
+
+    def forward(  # pylint: disable=missing-function-docstring
+        self, x: torch.Tensor, mask: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        x = self.multi_head_attention(query=x, key=x, value=x, mask=mask)
+        return x
+
+
 class MultiHeadAttention(nn.Module):
     """
     Multi-head attention module.

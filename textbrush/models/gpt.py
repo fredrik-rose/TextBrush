@@ -51,7 +51,7 @@ class GPT(nn.Module):
             vocab_size=vocab_size,
             embed_dim=embed_dim,
         )
-        self.transformer = transformer.MultiHeadAttention(
+        self.transformer = transformer.TransformerBlock(
             num_heads=num_heads,
             embed_dim=embed_dim,
         )
@@ -71,7 +71,7 @@ class GPT(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
         num_tokens = x.size(1)
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
-        x = self.transformer(query=x, key=x, value=x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
+        x = self.transformer(x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 
