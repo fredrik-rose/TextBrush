@@ -16,7 +16,6 @@ def train_model(
     data_loader: torchdata.DataLoader,
     loss_function: nn.Module,
     optimizer: optim.Optimizer,
-    batch_size: int,
     device: str,
 ) -> Generator[float, None, None]:
     """
@@ -42,7 +41,6 @@ def eval_model(
     model: nn.Module,
     data_loader: torchdata.DataLoader,
     loss_function: nn.Module,
-    batch_size: int,
     device: str,
 ) -> float:
     """

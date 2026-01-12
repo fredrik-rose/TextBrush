@@ -110,7 +110,6 @@ def train_model(model, dataset):
         data_loader=train_data_loader,
         loss_function=loss_function,
         optimizer=optimizer,
-        batch_size=BATCH_SIZE,
         device=device,
     )
 
@@ -131,7 +130,6 @@ def train_model(model, dataset):
                 model=model,
                 data_loader=validation_data_loader,
                 loss_function=loss_function,
-                batch_size=BATCH_SIZE,
                 device=device,
             )
             print(
