@@ -36,10 +36,16 @@ class TransformerBlock(nn.Module):
     def __init__(self, num_heads: int, embed_dim: int, feed_forward_dim: int, bias: bool = True):
         super().__init__()
 
+        self.attention_norm = LayerNorm(
+            embed_dim=embed_dim,
+        )
         self.multi_head_attention = MultiHeadAttention(
             num_heads=num_heads,
             embed_dim=embed_dim,
             bias=bias,
+        )
+        self.feed_forward_norm = LayerNorm(
+            embed_dim=embed_dim,
         )
         self.feed_forward_network = FeedForwardNetwork(
             embed_dim=embed_dim,
@@ -50,8 +56,36 @@ class TransformerBlock(nn.Module):
     def forward(  # pylint: disable=missing-function-docstring
         self, x: torch.Tensor, mask: torch.Tensor | None = None
     ) -> torch.Tensor:
+        x = self.attention_norm(x)
         x = self.multi_head_attention(query=x, key=x, value=x, mask=mask)
+        x = self.feed_forward_norm(x)
         x = self.feed_forward_network(x)
+        return x
+
+
+class LayerNorm(nn.Module):
+    """
+    Layer normalization.
+    """
+
+    def __init__(self, embed_dim: int, epsilon: float = 1e-5):
+        super().__init__()
+
+        self.epsilon = epsilon
+        self.scale = nn.Parameter(torch.ones(embed_dim))
+        self.shift = nn.Parameter(torch.zeros(embed_dim))
+
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        nn.init.ones_(self.scale)
+        nn.init.zeros_(self.shift)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+        mean = torch.mean(x, dim=-1, keepdim=True)
+        variance = torch.var(x, dim=-1, keepdim=True, unbiased=False)
+        x = (x - mean) / ((variance + self.epsilon) ** 0.5)
+        x = self.scale * x + self.shift
         return x
 
 
