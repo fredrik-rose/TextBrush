@@ -53,6 +53,7 @@ def main():
         dropout=DROPOUT,
         attention_dropout=ATTENTION_DROPOUT,
     )
+    print(f"{get_num_parameters(model) / 1e6} M parameters")
     prompt = "\n"
 
     print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
@@ -78,6 +79,14 @@ def get_device():
     """
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     return device
+
+
+def get_num_parameters(model):
+    """
+    get the number of parameters of a model.
+    """
+    num_parameters = sum(p.numel() for p in model.parameters())
+    return num_parameters
 
 
 def generate_text(prompt, dataset, model, length):
