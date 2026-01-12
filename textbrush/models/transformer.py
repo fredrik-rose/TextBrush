@@ -14,7 +14,13 @@ class Transformer(nn.Module):
     """
 
     def __init__(
-        self, num_tokens: int, num_blocks: int, embed_dim: int, num_heads: int, feed_forward_dim: int, bias: bool = True
+        self,
+        num_tokens: int,
+        num_blocks: int,
+        embed_dim: int,
+        num_heads: int,
+        feed_forward_dim: int,
+        bias: bool = True,
     ):
         super().__init__()
 
@@ -38,7 +44,9 @@ class Transformer(nn.Module):
         )
 
     def forward(  # pylint: disable=missing-function-docstring
-        self, x: torch.Tensor, mask: torch.Tensor | None = None
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         x = self.pos_encoder(x)
         for block in self.blocks:
@@ -52,7 +60,11 @@ class PositionalEncoder(nn.Module):
     Positional encoding with learnable embeddings.
     """
 
-    def __init__(self, num_tokens: int, embed_dim: int):
+    def __init__(
+        self,
+        num_tokens: int,
+        embed_dim: int,
+    ):
         super().__init__()
 
         self.pos_embed = nn.parameter.Parameter(torch.zeros(num_tokens, embed_dim))
@@ -62,7 +74,10 @@ class PositionalEncoder(nn.Module):
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
         nn.init.trunc_normal_(self.pos_embed, std=0.02)  # Use a small std to not dominate early in the training.
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
         x = x + self.pos_embed[: x.size(1)]
         return x
 
@@ -72,7 +87,13 @@ class TransformerBlock(nn.Module):
     A standard self-attention transformer block using pre-LayerNorm.
     """
 
-    def __init__(self, embed_dim: int, num_heads: int, feed_forward_dim: int, bias: bool = True):
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        feed_forward_dim: int,
+        bias: bool = True,
+    ):
         super().__init__()
 
         self.attention_norm = LayerNorm(
@@ -93,7 +114,9 @@ class TransformerBlock(nn.Module):
         )
 
     def forward(  # pylint: disable=missing-function-docstring
-        self, x: torch.Tensor, mask: torch.Tensor | None = None
+        self,
+        x: torch.Tensor,
+        mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         r = self.attention_norm(x)
         r = self.multi_head_attention(query=r, key=r, value=r, mask=mask)
@@ -109,7 +132,11 @@ class LayerNorm(nn.Module):
     Layer normalization.
     """
 
-    def __init__(self, embed_dim: int, epsilon: float = 1e-5):
+    def __init__(
+        self,
+        embed_dim: int,
+        epsilon: float = 1e-5,
+    ):
         super().__init__()
 
         self.epsilon = epsilon
@@ -122,7 +149,10 @@ class LayerNorm(nn.Module):
         nn.init.ones_(self.scale)
         nn.init.zeros_(self.shift)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
         mean = torch.mean(x, dim=-1, keepdim=True)
         variance = torch.var(x, dim=-1, keepdim=True, unbiased=False)
         x = (x - mean) / ((variance + self.epsilon) ** 0.5)
@@ -135,7 +165,12 @@ class MultiHeadAttention(nn.Module):
     Multi-head attention module.
     """
 
-    def __init__(self, embed_dim: int, num_heads: int, bias: bool = True):
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        bias: bool = True,
+    ):
         super().__init__()
 
         assert embed_dim % num_heads == 0
@@ -171,7 +206,11 @@ class MultiHeadAttention(nn.Module):
         init_xavier_uniform(self.out_proj)
 
     def forward(  # pylint: disable=missing-function-docstring
-        self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask: torch.Tensor | None = None
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         query = split_heads(self.query_proj(query), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         key = split_heads(self.key_proj(key), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
@@ -186,7 +225,12 @@ class FeedForwardNetwork(nn.Module):
     The feed-forward network of a Transformer.
     """
 
-    def __init__(self, embed_dim: int, feed_forward_dim: int, bias: bool = True):
+    def __init__(
+        self,
+        embed_dim: int,
+        feed_forward_dim: int,
+        bias: bool = True,
+    ):
         super().__init__()
 
         self.network = nn.Sequential(
@@ -207,7 +251,10 @@ class FeedForwardNetwork(nn.Module):
         init_xavier_uniform(self.network[0])
         init_xavier_uniform(self.network[2])
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
         x = self.network(x)
         return x
 
@@ -222,7 +269,10 @@ def init_xavier_uniform(linear_layer: nn.Module) -> None:
         nn.init.zeros_(linear_layer.bias)
 
 
-def split_heads(tensor: torch.Tensor, num_heads: int) -> torch.Tensor:
+def split_heads(
+    tensor: torch.Tensor,
+    num_heads: int,
+) -> torch.Tensor:
     """
     Split a tensor to heads, (B, T, D) -> (B, H, T, Dh).
     """
@@ -246,7 +296,10 @@ def merge_heads(tensor: torch.Tensor) -> torch.Tensor:
 
 
 def scaled_dot_product_attention(
-    query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask: torch.Tensor | None = None
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """
     Scaled dot-product attention.

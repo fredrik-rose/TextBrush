@@ -21,7 +21,11 @@ class TextEmbedder(nn.Module):
     A simple lookup table, each token (number) gets a corresponding vector.
     """
 
-    def __init__(self, vocab_size: int, embed_dim: int):
+    def __init__(
+        self,
+        vocab_size: int,
+        embed_dim: int,
+    ):
         super().__init__()
 
         self.text_embed = nn.Embedding(
@@ -34,7 +38,10 @@ class TextEmbedder(nn.Module):
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
         nn.init.normal_(self.text_embed.weight, mean=0.0, std=0.02)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
         x = self.text_embed(x)  # (B, T) -> (B, T, D)
         return x
 
@@ -45,7 +52,13 @@ class GPT(nn.Module):
     """
 
     def __init__(
-        self, vocab_size: int, num_tokens: int, num_blocks: int, num_heads: int, embed_dim: int, feed_forward_dim: int
+        self,
+        vocab_size: int,
+        num_tokens: int,
+        num_blocks: int,
+        num_heads: int,
+        embed_dim: int,
+        feed_forward_dim: int,
     ):
         super().__init__()
 
@@ -74,14 +87,21 @@ class GPT(nn.Module):
         nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.02)
         nn.init.zeros_(self.lm_head.bias)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
         num_tokens = x.size(1)
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
         x = self.transformer(x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 
-    def generate(self, prompt: list[int], device: str = "cpu") -> Generator[int, None, None]:
+    def generate(
+        self,
+        prompt: list[int],
+        device: str = "cpu",
+    ) -> Generator[int, None, None]:
         """
         Generate text (tokens), given a prompt (of tokens).
         """
