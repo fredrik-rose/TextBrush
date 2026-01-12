@@ -33,6 +33,9 @@ class Transformer(nn.Module):
                 for _ in range(num_blocks)
             ]
         )
+        self.norm = LayerNorm(
+            embed_dim=embed_dim,
+        )
 
     def forward(  # pylint: disable=missing-function-docstring
         self, x: torch.Tensor, mask: torch.Tensor | None = None
@@ -40,6 +43,7 @@ class Transformer(nn.Module):
         x = self.pos_encoder(x)
         for block in self.blocks:
             x = block(x, mask)
+        x = self.norm(x)
         return x
 
 
