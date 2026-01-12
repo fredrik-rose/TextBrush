@@ -44,7 +44,9 @@ class GPT(nn.Module):
     Generative pre-trained transformer.
     """
 
-    def __init__(self, vocab_size: int, num_tokens: int, num_heads: int, embed_dim: int, feed_forward_dim: int):
+    def __init__(
+        self, vocab_size: int, num_tokens: int, num_blocks: int, num_heads: int, embed_dim: int, feed_forward_dim: int
+    ):
         super().__init__()
 
         self.max_num_tokens = num_tokens
@@ -52,11 +54,9 @@ class GPT(nn.Module):
             vocab_size=vocab_size,
             embed_dim=embed_dim,
         )
-        self.pos_encoder = transformer.PositionalEncoder(
-            embed_dim=embed_dim,
+        self.transformer = transformer.Transformer(
             num_tokens=num_tokens,
-        )
-        self.transformer = transformer.TransformerBlock(
+            num_blocks=num_blocks,
             embed_dim=embed_dim,
             num_heads=num_heads,
             feed_forward_dim=feed_forward_dim,
@@ -77,7 +77,6 @@ class GPT(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
         num_tokens = x.size(1)
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
-        x = self.pos_encoder(x)  # (B, T, D)
         x = self.transformer(x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
