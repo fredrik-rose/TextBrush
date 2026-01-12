@@ -16,7 +16,7 @@ class Transformer(nn.Module):
     def __init__(
         self,
         num_tokens: int,
-        num_blocks: int,
+        num_layers: int,
         embed_dim: int,
         num_heads: int,
         feed_forward_dim: int,
@@ -40,7 +40,7 @@ class Transformer(nn.Module):
                     attention_dropout=attention_dropout,
                     bias=bias,
                 )
-                for _ in range(num_blocks)
+                for _ in range(num_layers)
             ]
         )
         self.norm = LayerNorm(

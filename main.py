@@ -17,7 +17,7 @@ from textbrush.optimizers import modeltrainer
 
 DATASET_SPLIT = 0.999
 MAX_TOKENS = 8
-NUM_BLOCKS = 3
+NUM_LAYERS = 3
 NUM_HEADS = 2
 EMBEDDED_DIMENSION = 32
 FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
@@ -46,7 +46,7 @@ def main():
     model = gpt.GPT(
         vocab_size=dataset.vocab_size,
         num_tokens=MAX_TOKENS,
-        num_blocks=NUM_BLOCKS,
+        num_layers=NUM_LAYERS,
         num_heads=NUM_HEADS,
         embed_dim=EMBEDDED_DIMENSION,
         feed_forward_dim=FEED_FORWARD_DIMENSION,

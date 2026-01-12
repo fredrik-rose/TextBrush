@@ -55,7 +55,7 @@ class GPT(nn.Module):
         self,
         vocab_size: int,
         num_tokens: int,
-        num_blocks: int,
+        num_layers: int,
         num_heads: int,
         embed_dim: int,
         feed_forward_dim: int,
@@ -71,7 +71,7 @@ class GPT(nn.Module):
         )
         self.transformer = transformer.Transformer(
             num_tokens=num_tokens,
-            num_blocks=num_blocks,
+            num_layers=num_layers,
             embed_dim=embed_dim,
             num_heads=num_heads,
             feed_forward_dim=feed_forward_dim,
