@@ -17,6 +17,7 @@ from textbrush.optimizers import modeltrainer
 MAX_TOKENS = 8
 NUM_HEADS = 2
 EMBEDDED_DIMENSION = 32
+FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 EPOCHS = 100
@@ -40,7 +41,11 @@ def main():
     print(f"Using '{device}' device.")
     dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
     model = gpt.GPT(
-        vocab_size=dataset.vocab_size, num_tokens=MAX_TOKENS, num_heads=NUM_HEADS, embed_dim=EMBEDDED_DIMENSION
+        vocab_size=dataset.vocab_size,
+        num_tokens=MAX_TOKENS,
+        num_heads=NUM_HEADS,
+        embed_dim=EMBEDDED_DIMENSION,
+        feed_forward_dim=FEED_FORWARD_DIMENSION,
     )
     prompt = "\n"
 

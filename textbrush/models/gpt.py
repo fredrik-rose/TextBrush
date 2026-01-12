@@ -44,7 +44,7 @@ class GPT(nn.Module):
     Generative pre-trained transformer.
     """
 
-    def __init__(self, vocab_size: int, num_tokens: int, num_heads: int, embed_dim: int):
+    def __init__(self, vocab_size: int, num_tokens: int, num_heads: int, embed_dim: int, feed_forward_dim: int):
         super().__init__()
 
         self.max_num_tokens = num_tokens
@@ -59,6 +59,7 @@ class GPT(nn.Module):
         self.transformer = transformer.TransformerBlock(
             num_heads=num_heads,
             embed_dim=embed_dim,
+            feed_forward_dim=feed_forward_dim,
         )
         self.lm_head = nn.Linear(
             in_features=embed_dim,

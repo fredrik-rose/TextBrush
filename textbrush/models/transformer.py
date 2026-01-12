@@ -33,7 +33,7 @@ class TransformerBlock(nn.Module):
     A standard self-attention transformer block using pre-LayerNorm.
     """
 
-    def __init__(self, num_heads: int, embed_dim: int, bias: bool = True):
+    def __init__(self, num_heads: int, embed_dim: int, feed_forward_dim: int, bias: bool = True):
         super().__init__()
 
         self.multi_head_attention = MultiHeadAttention(
@@ -41,11 +41,17 @@ class TransformerBlock(nn.Module):
             embed_dim=embed_dim,
             bias=bias,
         )
+        self.feed_forward_network = FeedForwardNetwork(
+            embed_dim=embed_dim,
+            feed_forward_dim=feed_forward_dim,
+            bias=bias,
+        )
 
     def forward(  # pylint: disable=missing-function-docstring
         self, x: torch.Tensor, mask: torch.Tensor | None = None
     ) -> torch.Tensor:
         x = self.multi_head_attention(query=x, key=x, value=x, mask=mask)
+        x = self.feed_forward_network(x)
         return x
 
 
@@ -95,6 +101,37 @@ class MultiHeadAttention(nn.Module):
         value = split_heads(self.value_proj(value), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         x = merge_heads(scaled_dot_product_attention(query, key, value, mask))  # (B, H, T, Dh) -> (B, T, D)
         x = self.out_proj(x)  # (B, T, D)
+        return x
+
+
+class FeedForwardNetwork(nn.Module):
+    """
+    The feed-forward network of a Transformer.
+    """
+
+    def __init__(self, embed_dim: int, feed_forward_dim: int, bias: bool = True):
+        super().__init__()
+
+        self.network = nn.Sequential(
+            nn.Linear(
+                in_features=embed_dim,
+                out_features=feed_forward_dim,
+                bias=bias,
+            ),
+            nn.ReLU(),
+            nn.Linear(
+                in_features=feed_forward_dim,
+                out_features=embed_dim,
+                bias=bias,
+            ),
+        )
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        init_xavier_uniform(self.network[0])
+        init_xavier_uniform(self.network[2])
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # pylint: disable=missing-function-docstring
+        x = self.network(x)
         return x
 
 
