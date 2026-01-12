@@ -56,10 +56,12 @@ class TransformerBlock(nn.Module):
     def forward(  # pylint: disable=missing-function-docstring
         self, x: torch.Tensor, mask: torch.Tensor | None = None
     ) -> torch.Tensor:
-        x = self.attention_norm(x)
-        x = self.multi_head_attention(query=x, key=x, value=x, mask=mask)
-        x = self.feed_forward_norm(x)
-        x = self.feed_forward_network(x)
+        r = self.attention_norm(x)
+        r = self.multi_head_attention(query=r, key=r, value=r, mask=mask)
+        x = x + r
+        r = self.feed_forward_norm(x)
+        r = self.feed_forward_network(r)
+        x = x + r
         return x
 
 
