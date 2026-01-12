@@ -19,6 +19,8 @@ NUM_BLOCKS = 3
 NUM_HEADS = 2
 EMBEDDED_DIMENSION = 32
 FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
+DROPOUT = 0.2
+ATTENTION_DROPOUT = DROPOUT
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 EPOCHS = 100
@@ -48,6 +50,8 @@ def main():
         num_heads=NUM_HEADS,
         embed_dim=EMBEDDED_DIMENSION,
         feed_forward_dim=FEED_FORWARD_DIMENSION,
+        dropout=DROPOUT,
+        attention_dropout=ATTENTION_DROPOUT,
     )
     prompt = "\n"
 

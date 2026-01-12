@@ -20,6 +20,8 @@ class Transformer(nn.Module):
         embed_dim: int,
         num_heads: int,
         feed_forward_dim: int,
+        dropout: float = 0.0,
+        attention_dropout: float = 0.0,
         bias: bool = True,
     ):
         super().__init__()
@@ -34,6 +36,8 @@ class Transformer(nn.Module):
                     embed_dim=embed_dim,
                     num_heads=num_heads,
                     feed_forward_dim=feed_forward_dim,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
                     bias=bias,
                 )
                 for _ in range(num_blocks)
@@ -64,10 +68,12 @@ class PositionalEncoder(nn.Module):
         self,
         num_tokens: int,
         embed_dim: int,
+        dropout: float = 0.0,
     ):
         super().__init__()
 
         self.pos_embed = nn.parameter.Parameter(torch.zeros(num_tokens, embed_dim))
+        self.dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
 
@@ -79,6 +85,7 @@ class PositionalEncoder(nn.Module):
         x: torch.Tensor,
     ) -> torch.Tensor:
         x = x + self.pos_embed[: x.size(1)]
+        x = self.dropout(x)
         return x
 
 
@@ -92,6 +99,8 @@ class TransformerBlock(nn.Module):
         embed_dim: int,
         num_heads: int,
         feed_forward_dim: int,
+        dropout: float = 0.0,
+        attention_dropout: float = 0.0,
         bias: bool = True,
     ):
         super().__init__()
@@ -102,6 +111,8 @@ class TransformerBlock(nn.Module):
         self.multi_head_attention = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
             bias=bias,
         )
         self.feed_forward_norm = LayerNorm(
@@ -110,6 +121,7 @@ class TransformerBlock(nn.Module):
         self.feed_forward_network = FeedForwardNetwork(
             embed_dim=embed_dim,
             feed_forward_dim=feed_forward_dim,
+            dropout=dropout,
             bias=bias,
         )
 
@@ -169,6 +181,8 @@ class MultiHeadAttention(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
+        dropout: float = 0.0,
+        attention_dropout: float = 0.0,
         bias: bool = True,
     ):
         super().__init__()
@@ -176,6 +190,7 @@ class MultiHeadAttention(nn.Module):
         assert embed_dim % num_heads == 0
 
         self.num_heads = num_heads
+        self.attention_dropout = attention_dropout
         self.query_proj = nn.Linear(
             in_features=embed_dim,
             out_features=embed_dim,
@@ -196,6 +211,7 @@ class MultiHeadAttention(nn.Module):
             out_features=embed_dim,
             bias=bias,
         )
+        self.dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
 
@@ -215,8 +231,11 @@ class MultiHeadAttention(nn.Module):
         query = split_heads(self.query_proj(query), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         key = split_heads(self.key_proj(key), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         value = split_heads(self.value_proj(value), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
-        x = merge_heads(scaled_dot_product_attention(query, key, value, mask))  # (B, H, T, Dh) -> (B, T, D)
+        x = merge_heads(  # (B, H, T, Dh) -> (B, T, D)
+            scaled_dot_product_attention(query=query, key=key, value=value, dropout=self.attention_dropout, mask=mask)
+        )
         x = self.out_proj(x)  # (B, T, D)
+        x = self.dropout(x)
         return x
 
 
@@ -229,6 +248,7 @@ class FeedForwardNetwork(nn.Module):
         self,
         embed_dim: int,
         feed_forward_dim: int,
+        dropout: float = 0.0,
         bias: bool = True,
     ):
         super().__init__()
@@ -245,6 +265,7 @@ class FeedForwardNetwork(nn.Module):
                 out_features=embed_dim,
                 bias=bias,
             ),
+            nn.Dropout(dropout),
         )
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
@@ -299,6 +320,7 @@ def scaled_dot_product_attention(
     query: torch.Tensor,
     key: torch.Tensor,
     value: torch.Tensor,
+    dropout: float = 0.0,
     mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """
@@ -309,5 +331,6 @@ def scaled_dot_product_attention(
     if mask is not None:
         attention_score = attention_score.masked_fill(mask == 0, float("-inf"))  # (B*, T, T)
     attention_weight = F.softmax(attention_score, dim=-1)  # (B*, T, T)
+    attention_weight = F.dropout(attention_weight, p=dropout)  # (B*, T, T)
     output = attention_weight @ value  # (B*, T, T) @ (B*, T, D) -> (B*, T, D)
     return output

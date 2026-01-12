@@ -59,6 +59,8 @@ class GPT(nn.Module):
         num_heads: int,
         embed_dim: int,
         feed_forward_dim: int,
+        dropout: float = 0.0,
+        attention_dropout: float = 0.0,
     ):
         super().__init__()
 
@@ -73,6 +75,8 @@ class GPT(nn.Module):
             embed_dim=embed_dim,
             num_heads=num_heads,
             feed_forward_dim=feed_forward_dim,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
         )
         self.lm_head = nn.Linear(
             in_features=embed_dim,
@@ -107,6 +111,7 @@ class GPT(nn.Module):
         """
         tokens = torch.tensor(prompt, dtype=torch.long, device=device).unsqueeze(0)  # (B, T)
         self.to(device)
+        self.eval()
         while True:
             tokens = tokens[:, -self.max_num_tokens :]
             logits = self(tokens)  # (B, T) -> (B, T, C)
