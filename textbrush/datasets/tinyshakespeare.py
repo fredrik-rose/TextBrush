@@ -17,19 +17,16 @@ class TinyShakespeare(torchdata.Dataset):
     The Tiny Shakespeare dataset.
     """
 
-    def __init__(self, train: bool, block_size: int = 8, train_size: float = 0.9):
-        assert 0 <= train_size <= 1
-
+    def __init__(self, block_size: int):
         with open(DATASET_FILE_PATH, "r", encoding="utf-8") as file:
             text = file.read()
 
-        train_size = int(train_size * len(text))
         vocab = sorted(set(text))
 
         self.vocab_size = len(vocab)
         self.int_to_token = dict(enumerate(vocab))
         self.token_to_int = {token: i for i, token in self.int_to_token.items()}
-        self.text = torch.tensor(self.encode(text[:train_size] if train else text[train_size:]))
+        self.text = torch.tensor(self.encode(text))
         self.block_size = block_size
 
     def __len__(self):

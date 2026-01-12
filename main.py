@@ -15,6 +15,7 @@ from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
 from textbrush.optimizers import modeltrainer
 
+DATASET_SPLIT = 0.999
 MAX_TOKENS = 8
 NUM_BLOCKS = 3
 NUM_HEADS = 2
@@ -41,7 +42,7 @@ def main():
     """
     parse()
 
-    dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
+    dataset = tinyshakespeare.TinyShakespeare(block_size=MAX_TOKENS)
     model = gpt.GPT(
         vocab_size=dataset.vocab_size,
         num_tokens=MAX_TOKENS,
@@ -55,7 +56,7 @@ def main():
     prompt = "\n"
 
     print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
-    train_model(model)
+    train_model(model, dataset)
     print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH))
 
 
@@ -71,7 +72,7 @@ def parse():
     return args
 
 
-def train_model(model):
+def train_model(model, dataset):
     """
     Train a GPT model on a dataset.
     """
@@ -94,9 +95,11 @@ def train_model(model):
     device = get_device()
     num_params = get_num_parameters(model)
 
-    train_dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
-    validation_dataset = tinyshakespeare.TinyShakespeare(train=False, block_size=MAX_TOKENS)
-    validation_dataset = torchdata.Subset(validation_dataset, list(range(1000)))
+    size = len(dataset)
+    split = int(size * DATASET_SPLIT)
+
+    train_dataset = torchdata.Subset(dataset, range(0, split))
+    validation_dataset = torchdata.Subset(dataset, range(split, size))
 
     train_data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     validation_data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
