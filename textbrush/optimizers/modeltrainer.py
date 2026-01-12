@@ -26,15 +26,16 @@ def train_model(
     model.train()
     model.to(device)
 
-    for x, y_true in data_loader:
-        optimizer.zero_grad()
-        x = x.to(device)
-        y_true = y_true.to(device)
-        y_pred = model(x)
-        loss = loss_function(y_pred, y_true)
-        loss.backward()
-        optimizer.step()
-        yield loss.item()
+    while True:
+        for x, y_true in data_loader:
+            optimizer.zero_grad()
+            x = x.to(device)
+            y_true = y_true.to(device)
+            y_pred = model(x)
+            loss = loss_function(y_pred, y_true)
+            loss.backward()
+            optimizer.step()
+            yield loss.item()
 
 
 def eval_model(
