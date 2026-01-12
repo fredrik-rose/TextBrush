@@ -7,6 +7,7 @@ import datetime
 import time
 
 import torch
+import torch.utils.data as torchdata
 
 from torch import nn
 
@@ -42,9 +43,10 @@ def main():
 
     device = get_device()
     print(f"Using '{device}' device.")
-    dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
+    train_dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
+    validation_dataset = tinyshakespeare.TinyShakespeare(train=False, block_size=MAX_TOKENS)
     model = gpt.GPT(
-        vocab_size=dataset.vocab_size,
+        vocab_size=train_dataset.vocab_size,
         num_tokens=MAX_TOKENS,
         num_blocks=NUM_BLOCKS,
         num_heads=NUM_HEADS,
@@ -56,9 +58,9 @@ def main():
     print(f"{get_num_parameters(model) / 1e6} M parameters")
     prompt = "\n"
 
-    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
-    train_model(model, dataset, device)
-    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH))
+    print(generate_text(prompt, validation_dataset, model, TEXT_GENERATION_LENGTH // 10))
+    train_model(model, train_dataset, validation_dataset, device)
+    print(generate_text(prompt, validation_dataset, model, TEXT_GENERATION_LENGTH))
 
 
 def parse():
@@ -99,7 +101,7 @@ def generate_text(prompt, dataset, model, length):
     return text
 
 
-def train_model(model, dataset, device):
+def train_model(model, train_dataset, validation_dataset, device):
     """
     Train a GPT model on a dataset.
     """
@@ -119,27 +121,38 @@ def train_model(model, dataset, device):
             y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
             return self.loss(y_pred, y_true)
 
+    validation_dataset = torchdata.Subset(validation_dataset, list(range(1000)))
+    train_data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    validation_data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
     loss_function = FlattenedCrossEntropy()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     trainer = modeltrainer.train_model(
         model=model,
-        dataset=dataset,
+        data_loader=train_data_loader,
         loss_function=loss_function,
         optimizer=optimizer,
-        num_epochs=EPOCHS,
         batch_size=BATCH_SIZE,
         device=device,
     )
     print(
-        f"\nStarting training | Epochs: {EPOCHS} | Max iterations: {MAX_TRAINING_ITERATIONS} | "
-        f"Batch size: {BATCH_SIZE} | Samples: {len(dataset)} | Learning rate: {LEARNING_RATE}"
+        f"\nStarting training | Iterations: {MAX_TRAINING_ITERATIONS} | Batch size: {BATCH_SIZE} | "
+        f"Learning rate: {LEARNING_RATE}"
     )
     start = time.time()
-    for i, loss in enumerate(trainer):
-        if i > MAX_TRAINING_ITERATIONS:
-            break
-        if i % (MAX_TRAINING_ITERATIONS // 10) == 0:
-            print(loss)
+    total_loss = 0.0
+    step_size = MAX_TRAINING_ITERATIONS // 10
+    for i in range(MAX_TRAINING_ITERATIONS):
+        total_loss += next(trainer)
+        if i % step_size == (step_size - 1):
+            val_loss = modeltrainer.eval_model(
+                model=model,
+                data_loader=validation_data_loader,
+                loss_function=loss_function,
+                batch_size=BATCH_SIZE,
+                device=device,
+            )
+            print(f"Train loss: {total_loss / step_size:.4f} | Val loss: {val_loss:.4f}")
+            total_loss = 0.0
     elapsed_time = round(time.time() - start)
     print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
 
