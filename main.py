@@ -41,12 +41,9 @@ def main():
     """
     parse()
 
-    device = get_device()
-    print(f"Using '{device}' device.")
-    train_dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
-    validation_dataset = tinyshakespeare.TinyShakespeare(train=False, block_size=MAX_TOKENS)
+    dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
     model = gpt.GPT(
-        vocab_size=train_dataset.vocab_size,
+        vocab_size=dataset.vocab_size,
         num_tokens=MAX_TOKENS,
         num_blocks=NUM_BLOCKS,
         num_heads=NUM_HEADS,
@@ -55,12 +52,11 @@ def main():
         dropout=DROPOUT,
         attention_dropout=ATTENTION_DROPOUT,
     )
-    print(f"{get_num_parameters(model) / 1e6} M parameters")
     prompt = "\n"
 
-    print(generate_text(prompt, validation_dataset, model, TEXT_GENERATION_LENGTH // 10))
-    train_model(model, train_dataset, validation_dataset, device)
-    print(generate_text(prompt, validation_dataset, model, TEXT_GENERATION_LENGTH))
+    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
+    train_model(model)
+    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH))
 
 
 def parse():
@@ -73,6 +69,70 @@ def parse():
     )
     args = parser.parse_args()
     return args
+
+
+def train_model(model):
+    """
+    Train a GPT model on a dataset.
+    """
+
+    class FlattenedCrossEntropy(nn.Module):
+        """
+        Adjust dimensions to use the ordinary cross entropy loss.
+        """
+
+        def __init__(self):
+            super().__init__()
+            self.loss = nn.CrossEntropyLoss()
+
+        def forward(self, y_pred, y_true):  # pylint: disable=missing-function-docstring
+            batch, tokens, classes = y_pred.shape
+            y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
+            y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
+            return self.loss(y_pred, y_true)
+
+    device = get_device()
+    num_params = get_num_parameters(model)
+
+    train_dataset = tinyshakespeare.TinyShakespeare(train=True, block_size=MAX_TOKENS)
+    validation_dataset = tinyshakespeare.TinyShakespeare(train=False, block_size=MAX_TOKENS)
+    validation_dataset = torchdata.Subset(validation_dataset, list(range(1000)))
+
+    train_data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    validation_data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
+
+    loss_function = FlattenedCrossEntropy()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+    trainer = modeltrainer.train_model(
+        model=model,
+        data_loader=train_data_loader,
+        loss_function=loss_function,
+        optimizer=optimizer,
+        batch_size=BATCH_SIZE,
+        device=device,
+    )
+
+    print(
+        f"\nStarting training | Device: {device} | #Params: {num_params / 1e6:.2f}M | "
+        f" Iterations: {MAX_TRAINING_ITERATIONS} | Batch size: {BATCH_SIZE} | Learning rate: {LEARNING_RATE}"
+    )
+    start = time.time()
+    total_loss = 0.0
+    step_size = MAX_TRAINING_ITERATIONS // 10
+    for i in range(MAX_TRAINING_ITERATIONS):
+        total_loss += next(trainer)
+        if i % step_size == (step_size - 1):
+            val_loss = modeltrainer.eval_model(
+                model=model,
+                data_loader=validation_data_loader,
+                loss_function=loss_function,
+                batch_size=BATCH_SIZE,
+                device=device,
+            )
+            print(f"Train loss: {total_loss / step_size:.4f} | Val loss: {val_loss:.4f}")
+            total_loss = 0.0
+    elapsed_time = round(time.time() - start)
+    print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
 
 
 def get_device():
@@ -99,62 +159,6 @@ def generate_text(prompt, dataset, model, length):
     generator = model.generate(tokens)
     text = dataset.decode(next(generator) for _ in range(length))
     return text
-
-
-def train_model(model, train_dataset, validation_dataset, device):
-    """
-    Train a GPT model on a dataset.
-    """
-
-    class FlattenedCrossEntropy(nn.Module):
-        """
-        Adjust dimensions to use the ordinary cross entropy loss.
-        """
-
-        def __init__(self):
-            super().__init__()
-            self.loss = nn.CrossEntropyLoss()
-
-        def forward(self, y_pred, y_true):  # pylint: disable=missing-function-docstring
-            batch, tokens, classes = y_pred.shape
-            y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
-            y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
-            return self.loss(y_pred, y_true)
-
-    validation_dataset = torchdata.Subset(validation_dataset, list(range(1000)))
-    train_data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    validation_data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    loss_function = FlattenedCrossEntropy()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
-    trainer = modeltrainer.train_model(
-        model=model,
-        data_loader=train_data_loader,
-        loss_function=loss_function,
-        optimizer=optimizer,
-        batch_size=BATCH_SIZE,
-        device=device,
-    )
-    print(
-        f"\nStarting training | Iterations: {MAX_TRAINING_ITERATIONS} | Batch size: {BATCH_SIZE} | "
-        f"Learning rate: {LEARNING_RATE}"
-    )
-    start = time.time()
-    total_loss = 0.0
-    step_size = MAX_TRAINING_ITERATIONS // 10
-    for i in range(MAX_TRAINING_ITERATIONS):
-        total_loss += next(trainer)
-        if i % step_size == (step_size - 1):
-            val_loss = modeltrainer.eval_model(
-                model=model,
-                data_loader=validation_data_loader,
-                loss_function=loss_function,
-                batch_size=BATCH_SIZE,
-                device=device,
-            )
-            print(f"Train loss: {total_loss / step_size:.4f} | Val loss: {val_loss:.4f}")
-            total_loss = 0.0
-    elapsed_time = round(time.time() - start)
-    print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
 
 
 if __name__ == "__main__":
