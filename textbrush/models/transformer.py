@@ -33,15 +33,15 @@ class TransformerBlock(nn.Module):
     A standard self-attention transformer block using pre-LayerNorm.
     """
 
-    def __init__(self, num_heads: int, embed_dim: int, feed_forward_dim: int, bias: bool = True):
+    def __init__(self, embed_dim: int, num_heads: int, feed_forward_dim: int, bias: bool = True):
         super().__init__()
 
         self.attention_norm = LayerNorm(
             embed_dim=embed_dim,
         )
         self.multi_head_attention = MultiHeadAttention(
-            num_heads=num_heads,
             embed_dim=embed_dim,
+            num_heads=num_heads,
             bias=bias,
         )
         self.feed_forward_norm = LayerNorm(
@@ -96,8 +96,10 @@ class MultiHeadAttention(nn.Module):
     Multi-head attention module.
     """
 
-    def __init__(self, num_heads: int, embed_dim: int, bias: bool = True):
+    def __init__(self, embed_dim: int, num_heads: int, bias: bool = True):
         super().__init__()
+
+        assert embed_dim % num_heads == 0
 
         self.num_heads = num_heads
         self.query_proj = nn.Linear(

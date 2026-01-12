@@ -57,8 +57,8 @@ class GPT(nn.Module):
             num_tokens=num_tokens,
         )
         self.transformer = transformer.TransformerBlock(
-            num_heads=num_heads,
             embed_dim=embed_dim,
+            num_heads=num_heads,
             feed_forward_dim=feed_forward_dim,
         )
         self.lm_head = nn.Linear(
