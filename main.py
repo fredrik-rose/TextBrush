@@ -25,7 +25,6 @@ DROPOUT = 0.2
 ATTENTION_DROPOUT = DROPOUT
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
-EPOCHS = 100
 MAX_TRAINING_ITERATIONS = 1000
 TEXT_GENERATION_LENGTH = 1000
 
@@ -117,14 +116,17 @@ def train_model(model, dataset):
 
     print(
         f"\nStarting training | Device: {device} | #Params: {num_params / 1e6:.2f}M | "
-        f" Iterations: {MAX_TRAINING_ITERATIONS} | Batch size: {BATCH_SIZE} | Learning rate: {LEARNING_RATE}"
+        f"Iterations: {MAX_TRAINING_ITERATIONS} | Batch size: {BATCH_SIZE} | Learning rate: {LEARNING_RATE}"
     )
-    start = time.time()
-    total_loss = 0.0
     step_size = MAX_TRAINING_ITERATIONS // 10
+    start = time.time()
+    t0 = start
+    total_loss = 0.0
     for i in range(MAX_TRAINING_ITERATIONS):
         total_loss += next(trainer)
         if i % step_size == (step_size - 1):
+            dt = time.time() - t0
+            tokens_per_sec = (step_size * BATCH_SIZE * MAX_TOKENS) / dt
             val_loss = modeltrainer.eval_model(
                 model=model,
                 data_loader=validation_data_loader,
@@ -132,7 +134,11 @@ def train_model(model, dataset):
                 batch_size=BATCH_SIZE,
                 device=device,
             )
-            print(f"Train loss: {total_loss / step_size:.4f} | Val loss: {val_loss:.4f}")
+            print(
+                f"train loss: {total_loss / step_size:.4f} | val loss: {val_loss:.4f} | dt: {dt:.2f}s | "
+                f"tokens/sec: {tokens_per_sec:.2f}"
+            )
+            t0 = time.time()
             total_loss = 0.0
     elapsed_time = round(time.time() - start)
     print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
