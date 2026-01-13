@@ -11,6 +11,7 @@ import torch.utils.data as torchdata
 
 from torch import nn
 
+from textbrush.datasets import split as dataset_spliter
 from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
 from textbrush.optimizers import modeltrainer
@@ -94,11 +95,7 @@ def train_model(model, dataset):
     device = get_device()
     num_params = get_num_parameters(model)
 
-    size = len(dataset)
-    split = int(size * DATASET_SPLIT)
-
-    train_dataset = torchdata.Subset(dataset, range(0, split))
-    validation_dataset = torchdata.Subset(dataset, range(split, size))
+    train_dataset, validation_dataset = dataset_spliter.split_ordered(dataset, [DATASET_SPLIT, (1.0 - DATASET_SPLIT)])
 
     train_data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     validation_data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
