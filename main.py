@@ -121,8 +121,8 @@ def train_application(application, num_tokens_in_batch, device, output_path):
                 best_loss = val_loss
                 torch.save(application.model.state_dict(), output_path)
             print(
-                f"train loss: {total_loss / step_size:.4f} | val loss: {val_loss:.4f} | dt: {dt:.2f}s | "
-                f"tokens/sec: {tokens_per_sec:.2f}"
+                f"{i + 1}/{MAX_TRAINING_ITERATIONS} | train loss: {total_loss / step_size:.4f} | "
+                f"val loss: {val_loss:.4f} | dt: {dt:.2f}s | tokens/sec: {tokens_per_sec:.2f}"
             )
             t0 = time.time()
             total_loss = 0.0
