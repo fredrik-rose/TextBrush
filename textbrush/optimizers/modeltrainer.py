@@ -2,7 +2,7 @@
 Model trainer, trains models on datasets via an optimizer.
 """
 
-from typing import Generator
+import typing
 
 import torch
 import torch.utils.data as torchdata
@@ -19,7 +19,7 @@ def train_model(
     optimizer: optim.Optimizer,
     device: str,
     learning_rate_scheduler: lr_scheduler.LRScheduler | None = None,
-) -> Generator[float, None, None]:
+) -> typing.Generator[float, None, None]:
     """
     Train a model.
     """

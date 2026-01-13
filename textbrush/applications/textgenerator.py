@@ -3,6 +3,7 @@ Shakespeare text generator.
 """
 
 import pathlib
+import typing
 
 import torch
 import torch.utils.data as torchdata
@@ -62,14 +63,19 @@ class Textgenerator:
         self,
         prompt: str,
         length: int,
-    ) -> str:
+    ) -> typing.Generator[str, None, None]:
         """
         Generate text given a prompt.
         """
         tokens = self.dataset.encode(prompt)
         generator = self.model.generate(tokens)
-        text = self.dataset.decode(next(generator) for _ in range(length))
-        return prompt + text
+        yield prompt
+        for _ in range(length):
+            try:
+                yield self.dataset.decode([next(generator)])
+            except StopIteration:
+                assert False
+        yield "\n"
 
     def train(
         self,

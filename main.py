@@ -33,7 +33,8 @@ def main():
         return
 
     text_generator = textgenerator.Textgenerator(textgenerator.MODEL_PATH)
-    print(text_generator(args.prompt, args.n))
+    for char in text_generator(args.prompt, args.n):
+        print(char, end="", flush=True)
 
 
 def parse():
