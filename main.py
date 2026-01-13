@@ -17,7 +17,7 @@ from torch import onnx
 from textbrush.applications import textgenerator
 
 MAX_TRAINING_ITERATIONS = 5000
-TEXT_GENERATION_LENGTH = 5000
+TEXT_GENERATION_LENGTH = 1000
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
