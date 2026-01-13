@@ -27,10 +27,11 @@ def main():
     parse()
 
     text_generator = textgenerator.Textgenerator()
+    num_tokens_in_batch = textgenerator.BATCH_SIZE * textgenerator.MAX_TOKENS
     prompt = "\n"
 
     print(text_generator(prompt, TEXT_GENERATION_LENGTH // 10))
-    train_application(text_generator)
+    train_application(text_generator, num_tokens_in_batch)
     print(text_generator(prompt, TEXT_GENERATION_LENGTH))
 
 
@@ -46,7 +47,7 @@ def parse():
     return args
 
 
-def train_application(application):
+def train_application(application, num_tokens_in_batch):
     """
     Train an application.
     """
@@ -67,7 +68,7 @@ def train_application(application):
         total_loss += next(trainer)
         if i % step_size == (step_size - 1):
             dt = time.time() - t0
-            tokens_per_sec = (step_size * textgenerator.BATCH_SIZE * textgenerator.MAX_TOKENS) / dt
+            tokens_per_sec = (step_size * num_tokens_in_batch) / dt
             val_loss = application.eval(device)
             print(
                 f"train loss: {total_loss / step_size:.4f} | val loss: {val_loss:.4f} | dt: {dt:.2f}s | "
