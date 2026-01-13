@@ -2,16 +2,29 @@
 Shakespeare text generator.
 """
 
+import torch
+import torch.utils.data as torchdata
+
+from torch import nn
+
+from textbrush.datasets import split as dataset_spliter
 from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
+from textbrush.optimizers import modeltrainer
 
 MAX_TOKENS = 8
 NUM_LAYERS = 3
 NUM_HEADS = 2
 EMBEDDED_DIMENSION = 32
 FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
+
 DROPOUT = 0.2
 ATTENTION_DROPOUT = DROPOUT
+
+DATASET_SPLIT = 0.999
+
+BATCH_SIZE = 32
+LEARNING_RATE = 1e-3
 
 
 class Textgenerator:
@@ -33,6 +46,7 @@ class Textgenerator:
             dropout=DROPOUT,
             attention_dropout=ATTENTION_DROPOUT,
         )
+        self.split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
 
     def __call__(
         self,
@@ -46,3 +60,56 @@ class Textgenerator:
         generator = self.model.generate(tokens)
         text = self.dataset.decode(next(generator) for _ in range(length))
         return text
+
+    def train(
+        self,
+        device: str,
+    ):
+        """
+        Train the model.
+        """
+        train_dataset, _ = dataset_spliter.split_ordered(self.dataset, self.split)
+        data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        loss_function = FlattenedCrossEntropy()
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
+        yield from modeltrainer.train_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=loss_function,
+            optimizer=optimizer,
+            device=device,
+        )
+
+    def eval(
+        self,
+        device: str,
+    ):
+        """
+        Evaluate the model in the validation dataset.
+        """
+        _, validation_dataset = dataset_spliter.split_ordered(self.dataset, self.split)
+        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        loss_function = FlattenedCrossEntropy()
+        validation_loss = modeltrainer.eval_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=loss_function,
+            device=device,
+        )
+        return validation_loss
+
+
+class FlattenedCrossEntropy(nn.Module):
+    """
+    Adjust dimensions to use the ordinary cross entropy loss.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.loss = nn.CrossEntropyLoss()
+
+    def forward(self, y_pred, y_true):  # pylint: disable=missing-function-docstring
+        batch, tokens, classes = y_pred.shape
+        y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
+        y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
+        return self.loss(y_pred, y_true)
