@@ -25,6 +25,13 @@ To generate text (1000 characters with prompt "QUEEN") run:
 python main.py -p "QUEEN" -n 1000
 ```
 
+### Visualize the Model
+
+To train the model (neural network) of the application run:
+```
+python main.py --visualize-model
+```
+
 ## Relevant Papers
 
 - Attention Is All You Need: https://arxiv.org/abs/1706.03762

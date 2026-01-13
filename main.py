@@ -4,9 +4,15 @@ The text brush entry point.
 
 import argparse
 import datetime
+import pathlib
+import tempfile
 import time
 
+import netron
 import torch
+import torchinfo
+
+from torch import onnx
 
 from textbrush.applications import textgenerator
 
@@ -33,6 +39,11 @@ def main():
         return
 
     text_generator = textgenerator.Textgenerator(textgenerator.MODEL_PATH)
+
+    if args.visualize_model:
+        visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], 0))
+        return
+
     for char in text_generator(args.prompt, args.n):
         print(char, end="", flush=True)
 
@@ -62,6 +73,12 @@ def parse():
         type=int,
         help="length (number of characters) of text to generate",
         default=TEXT_GENERATION_LENGTH,
+    )
+    parser.add_argument(
+        "-v",
+        "--visualize-model",
+        action="store_true",
+        help="visualize the model of the application",
     )
     args = parser.parse_args()
     return args
@@ -118,6 +135,18 @@ def get_num_parameters(model):
     """
     num_parameters = sum(p.numel() for p in model.parameters())
     return num_parameters
+
+
+def visualize_model(model, example_input, depth: int = 7):
+    """
+    Visualize a model using the Netron application.
+    """
+    torchinfo.summary(model, input_data=example_input, depth=depth)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        model_path = pathlib.Path(temp_dir) / "model.onnx"
+        onnx.export(model, example_input, model_path, input_names=["input"], output_names=["output"])
+        netron.start(str(model_path))
+        netron.wait()
 
 
 if __name__ == "__main__":
