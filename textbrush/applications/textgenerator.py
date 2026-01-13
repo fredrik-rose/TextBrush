@@ -14,19 +14,19 @@ from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
 from textbrush.optimizers import modeltrainer
 
-MAX_TOKENS = 8
-NUM_LAYERS = 3
-NUM_HEADS = 2
-EMBEDDED_DIMENSION = 32
+MAX_TOKENS = 128
+NUM_LAYERS = 6
+NUM_HEADS = 4
+EMBEDDED_DIMENSION = 128
 FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
 
-DROPOUT = 0.2
+DROPOUT = 0.1
 ATTENTION_DROPOUT = DROPOUT
 
-DATASET_SPLIT = 0.999
+DATASET_SPLIT = 0.99
 
 BATCH_SIZE = 32
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 3e-4
 
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "text-generator.pth"
 

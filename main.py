@@ -10,8 +10,8 @@ import torch
 
 from textbrush.applications import textgenerator
 
-MAX_TRAINING_ITERATIONS = 1000
-TEXT_GENERATION_LENGTH = 1000
+MAX_TRAINING_ITERATIONS = 5000
+TEXT_GENERATION_LENGTH = 5000
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
