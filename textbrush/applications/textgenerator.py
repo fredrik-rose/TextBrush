@@ -63,12 +63,13 @@ class Textgenerator:
         self,
         prompt: str,
         length: int,
+        device: str = "cpu",
     ) -> typing.Generator[str, None, None]:
         """
         Generate text given a prompt.
         """
         tokens = self.dataset.encode(prompt)
-        generator = self.model.generate(tokens)
+        generator = self.model.generate(tokens, device=device)
         yield prompt
         for _ in range(length):
             try:

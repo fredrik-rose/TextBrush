@@ -32,10 +32,12 @@ def main():
     """
     args = parse()
 
+    device = get_device()
+
     if args.train:
         text_generator = textgenerator.Textgenerator()
         num_tokens_in_batch = textgenerator.BATCH_SIZE * textgenerator.MAX_TOKENS
-        train_application(text_generator, num_tokens_in_batch, textgenerator.MODEL_PATH)
+        train_application(text_generator, num_tokens_in_batch, device, textgenerator.MODEL_PATH)
         return
 
     text_generator = textgenerator.Textgenerator(textgenerator.MODEL_PATH)
@@ -44,7 +46,7 @@ def main():
         visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], 0))
         return
 
-    for char in text_generator(args.prompt, args.n):
+    for char in text_generator(args.prompt, args.n, device):
         print(char, end="", flush=True)
 
 
@@ -84,11 +86,18 @@ def parse():
     return args
 
 
-def train_application(application, num_tokens_in_batch, output_path):
+def get_device():
+    """
+    get the "best" available device.
+    """
+    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    return device
+
+
+def train_application(application, num_tokens_in_batch, device, output_path):
     """
     Train an application.
     """
-    device = get_device()
     num_params = get_num_parameters(application.model)
 
     trainer = application.train(device)
@@ -119,14 +128,6 @@ def train_application(application, num_tokens_in_batch, output_path):
             total_loss = 0.0
     elapsed_time = round(time.time() - start)
     print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
-
-
-def get_device():
-    """
-    get the "best" available device.
-    """
-    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-    return device
 
 
 def get_num_parameters(model):
