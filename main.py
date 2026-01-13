@@ -11,19 +11,11 @@ import torch.utils.data as torchdata
 
 from torch import nn
 
+from textbrush.applications import textgenerator
 from textbrush.datasets import split as dataset_spliter
-from textbrush.datasets import tinyshakespeare
-from textbrush.models import gpt
 from textbrush.optimizers import modeltrainer
 
 DATASET_SPLIT = 0.999
-MAX_TOKENS = 8
-NUM_LAYERS = 3
-NUM_HEADS = 2
-EMBEDDED_DIMENSION = 32
-FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
-DROPOUT = 0.2
-ATTENTION_DROPOUT = DROPOUT
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 MAX_TRAINING_ITERATIONS = 1000
@@ -42,22 +34,12 @@ def main():
     """
     parse()
 
-    dataset = tinyshakespeare.TinyShakespeare(block_size=MAX_TOKENS)
-    model = gpt.GPT(
-        vocab_size=dataset.vocab_size,
-        num_tokens=MAX_TOKENS,
-        num_layers=NUM_LAYERS,
-        num_heads=NUM_HEADS,
-        embed_dim=EMBEDDED_DIMENSION,
-        feed_forward_dim=FEED_FORWARD_DIMENSION,
-        dropout=DROPOUT,
-        attention_dropout=ATTENTION_DROPOUT,
-    )
+    text_generator = textgenerator.Textgenerator()
     prompt = "\n"
 
-    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH // 10))
-    train_model(model, dataset)
-    print(generate_text(prompt, dataset, model, TEXT_GENERATION_LENGTH))
+    print(text_generator(prompt, TEXT_GENERATION_LENGTH // 10))
+    train_model(text_generator.model, text_generator.dataset)
+    print(text_generator(prompt, TEXT_GENERATION_LENGTH))
 
 
 def parse():
@@ -122,7 +104,7 @@ def train_model(model, dataset):
         total_loss += next(trainer)
         if i % step_size == (step_size - 1):
             dt = time.time() - t0
-            tokens_per_sec = (step_size * BATCH_SIZE * MAX_TOKENS) / dt
+            tokens_per_sec = (step_size * BATCH_SIZE * textgenerator.MAX_TOKENS) / dt
             val_loss = modeltrainer.eval_model(
                 model=model,
                 data_loader=validation_data_loader,
@@ -153,16 +135,6 @@ def get_num_parameters(model):
     """
     num_parameters = sum(p.numel() for p in model.parameters())
     return num_parameters
-
-
-def generate_text(prompt, dataset, model, length):
-    """
-    Generate text given a prompt.
-    """
-    tokens = dataset.encode(prompt)
-    generator = model.generate(tokens)
-    text = dataset.decode(next(generator) for _ in range(length))
-    return text
 
 
 if __name__ == "__main__":
