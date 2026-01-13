@@ -46,7 +46,8 @@ def main():
         visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], 0))
         return
 
-    for char in text_generator(args.prompt, args.n, device):
+    prompt = "\n" if args.prompt is None else args.prompt
+    for char in text_generator(prompt, args.n, device):
         print(char, end="", flush=True)
 
 
@@ -68,7 +69,7 @@ def parse():
         "--prompt",
         type=str,
         help="prompt",
-        default=r"\n",
+        default=None,
     )
     parser.add_argument(
         "-n",
