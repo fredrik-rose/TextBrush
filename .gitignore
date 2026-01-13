@@ -17,3 +17,6 @@ dist/
 
 # Jupter Notebook
 .ipynb_checkpoints
+
+# Torch
+*.pth

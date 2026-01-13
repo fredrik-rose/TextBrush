@@ -2,6 +2,8 @@
 Shakespeare text generator.
 """
 
+import pathlib
+
 import torch
 import torch.utils.data as torchdata
 
@@ -26,13 +28,18 @@ DATASET_SPLIT = 0.999
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 
+MODEL_PATH = pathlib.Path(__file__).resolve().parent / "text-generator.pth"
+
 
 class Textgenerator:
     """
     Text generator using a GPT model as backend.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        model_path: pathlib.Path | None = None,
+    ):
         self.dataset = tinyshakespeare.TinyShakespeare(
             block_size=MAX_TOKENS,
         )
@@ -47,6 +54,9 @@ class Textgenerator:
             attention_dropout=ATTENTION_DROPOUT,
         )
         self.split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
+
+        if model_path:
+            self.model.load_state_dict(torch.load(model_path, weights_only=True))
 
     def __call__(
         self,
