@@ -33,8 +33,7 @@ def main():
         return
 
     text_generator = textgenerator.Textgenerator(textgenerator.MODEL_PATH)
-    prompt = "\n"
-    print(text_generator(prompt, args.n))
+    print(text_generator(args.prompt, args.n))
 
 
 def parse():
@@ -49,6 +48,13 @@ def parse():
         "--train",
         action="store_true",
         help="train the model of the application",
+    )
+    parser.add_argument(
+        "-p",
+        "--prompt",
+        type=str,
+        help="prompt",
+        default=r"\n",
     )
     parser.add_argument(
         "-n",

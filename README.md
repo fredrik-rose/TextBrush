@@ -20,9 +20,9 @@ python main.py --train
 
 ### Generate Text
 
-To generate text run (`n` decides how many characters to generate):
+To generate text (1000 characters with prompt "QUEEN") run:
 ```
-python main.py -n 1000
+python main.py -p "QUEEN" -n 1000
 ```
 
 ## Relevant Papers

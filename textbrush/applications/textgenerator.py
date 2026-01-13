@@ -69,7 +69,7 @@ class Textgenerator:
         tokens = self.dataset.encode(prompt)
         generator = self.model.generate(tokens)
         text = self.dataset.decode(next(generator) for _ in range(length))
-        return text
+        return prompt + text
 
     def train(
         self,
