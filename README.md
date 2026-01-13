@@ -3,6 +3,28 @@
 A project that implements generative machine learning models for text and images. The focus is on handwritten digits
 and the core architecture component is the transformer.
 
+## Usage
+
+This chapter contains example commands.
+
+```
+python main.py --help
+```
+
+### Train the Model
+
+To train the model (neural network) of the application run:
+```
+python main.py --train
+```
+
+### Generate Text
+
+To generate text run (`n` decides how many characters to generate):
+```
+python main.py -n 1000
+```
+
 ## Relevant Papers
 
 - Attention Is All You Need: https://arxiv.org/abs/1706.03762
