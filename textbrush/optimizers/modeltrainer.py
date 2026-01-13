@@ -9,6 +9,7 @@ import torch.utils.data as torchdata
 
 from torch import nn
 from torch import optim
+from torch.optim import lr_scheduler
 
 
 def train_model(
@@ -17,6 +18,7 @@ def train_model(
     loss_function: nn.Module,
     optimizer: optim.Optimizer,
     device: str,
+    learning_rate_scheduler: lr_scheduler.LRScheduler | None = None,
 ) -> Generator[float, None, None]:
     """
     Train a model.
@@ -35,6 +37,8 @@ def train_model(
             loss.backward()
             optimizer.step()
             yield loss.item()
+        if learning_rate_scheduler is not None:
+            learning_rate_scheduler.step()
 
 
 def eval_model(
