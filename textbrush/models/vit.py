@@ -73,6 +73,7 @@ class ViT(nn.Module):
         x = self.cls_head(x[:, 0, :])  # (B, D) -> (B, C)
         return x
 
+    @torch.no_grad()
     def classify(
         self,
         image: torch.Tensor,
@@ -84,11 +85,10 @@ class ViT(nn.Module):
         image = image.to(device)
         self.to(device)
         self.eval()
-        with torch.no_grad():
-            logits = self(image.unsqueeze(0))
-            probs = F.softmax(logits[0], dim=-1)
-            class_index = torch.argmax(probs)
-            return class_index.item()
+        logits = self(image.unsqueeze(0))
+        probs = F.softmax(logits[0], dim=-1)
+        class_index = torch.argmax(probs)
+        return class_index.item()
 
 
 class VisionEmbedder(nn.Module):

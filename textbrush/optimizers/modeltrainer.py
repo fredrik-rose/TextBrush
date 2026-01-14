@@ -41,6 +41,7 @@ def train_model(
             learning_rate_scheduler.step()
 
 
+@torch.no_grad()
 def eval_model(
     model: nn.Module,
     data_loader: torchdata.DataLoader,
@@ -56,11 +57,10 @@ def eval_model(
 
     total_loss = 0.0
 
-    with torch.no_grad():
-        for x, y_true in data_loader:
-            x = x.to(device)
-            y_true = y_true.to(device)
-            y_pred = model(x)
-            total_loss += loss_function(y_pred, y_true).item()
+    for x, y_true in data_loader:
+        x = x.to(device)
+        y_true = y_true.to(device)
+        y_pred = model(x)
+        total_loss += loss_function(y_pred, y_true).item()
 
     return total_loss / len(data_loader)
