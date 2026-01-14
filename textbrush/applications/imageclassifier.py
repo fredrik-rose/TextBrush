@@ -43,15 +43,19 @@ class ImageClassifier:
 
     def __call__(
         self,
+        num_images: int,
         device: str = "cpu",
     ) -> None:
         """
         Classify images.
         """
-        image_tensor, true_label = self.dataset[0]
-        pred_label = self.model.classify(image_tensor, device=device)
-        image = mnist.to_image(image_tensor)
-        plt.imshow(image, cmap="gray")
-        plt.title(f"True: {true_label}, Predicted: {pred_label}")
-        plt.axis("off")
-        plt.show()
+        val_dataset = mnist.Mnist(train=False)
+        for i, (image_tensor, true_label) in enumerate(val_dataset):
+            if i >= num_images:
+                break
+            pred_label = self.model.classify(image_tensor, device=device)
+            image = mnist.to_image(image_tensor)
+            plt.imshow(image, cmap="gray")
+            plt.title(f"True: {true_label}, Predicted: {pred_label}")
+            plt.axis("off")
+            plt.show()

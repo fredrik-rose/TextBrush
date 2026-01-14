@@ -19,6 +19,7 @@ from textbrush.applications import textgenerator
 
 MAX_TRAINING_ITERATIONS = 5000
 TEXT_GENERATION_LENGTH = 1000
+NUM_IMAGES = 5
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -39,7 +40,7 @@ def main():
         case "text":
             text_generator_application(args, device)
         case "image":
-            image_classifier_application()
+            image_classifier_application(args, device)
         case _:
             assert False
 
@@ -81,7 +82,13 @@ def parse():
         default=TEXT_GENERATION_LENGTH,
     )
 
-    subparsers.add_parser("image", help="Hand-written digit classifier")
+    image_classifier_parser = subparsers.add_parser("image", help="Hand-written digit classifier")
+    image_classifier_parser.add_argument(
+        "-n",
+        type=int,
+        help="number of images to classify",
+        default=NUM_IMAGES,
+    )
 
     args = parser.parse_args()
     return args
@@ -116,12 +123,12 @@ def text_generator_application(args, device):
         print(char, end="", flush=True)
 
 
-def image_classifier_application():
+def image_classifier_application(args, device):
     """
     Image classifier application.
     """
     image_classifier = imageclassifier.ImageClassifier()
-    image_classifier()
+    image_classifier(args.n, device)
 
 
 def train_application(application, num_tokens_in_batch, device, output_path):
