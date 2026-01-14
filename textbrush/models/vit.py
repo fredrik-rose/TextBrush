@@ -4,6 +4,8 @@ The Vision Transformer.
 
 import torch
 
+import torch.nn.functional as F
+
 from torch import nn
 
 from . import transformer
@@ -70,6 +72,23 @@ class ViT(nn.Module):
         x = self.transformer(x)  # (B, T+1, D)
         x = self.cls_head(x[:, 0, :])  # (B, D) -> (B, C)
         return x
+
+    def classify(
+        self,
+        image: torch.Tensor,
+        device: str = "cpu",
+    ) -> int:
+        """
+        Classify an image.
+        """
+        image = image.to(device)
+        self.to(device)
+        self.eval()
+        with torch.no_grad():
+            logits = self(image.unsqueeze(0))
+            probs = F.softmax(logits[0], dim=-1)
+            class_index = torch.argmax(probs)
+            return class_index.item()
 
 
 class VisionEmbedder(nn.Module):

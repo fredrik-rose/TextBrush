@@ -3,7 +3,6 @@ Hand-written digit image classifier.
 """
 
 import matplotlib.pyplot as plt
-import torch
 
 from textbrush.datasets import mnist
 from textbrush.models import vit
@@ -42,9 +41,15 @@ class ImageClassifier:
             attention_dropout=ATTENTION_DROPOUT,
         )
 
-    def __call__(self) -> None:
+    def __call__(
+        self,
+        device: str = "cpu",
+    ) -> None:
+        """
+        Classify images.
+        """
         image_tensor, true_label = self.dataset[0]
-        pred_label = torch.argmax(self.model(image_tensor.unsqueeze(0))).item()
+        pred_label = self.model.classify(image_tensor, device=device)
         image = mnist.to_image(image_tensor)
         plt.imshow(image, cmap="gray")
         plt.title(f"True: {true_label}, Predicted: {pred_label}")
