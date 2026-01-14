@@ -20,3 +20,6 @@ dist/
 
 # Torch
 *.pth
+
+# Datasets
+textbrush/datasets/MNIST/
