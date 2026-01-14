@@ -23,12 +23,11 @@ def train_model(
     """
     Train a model.
     """
-
-    model.train()
     model.to(device)
 
     while True:
         for x, y_true in data_loader:
+            model.train()
             optimizer.zero_grad()
             x = x.to(device)
             y_true = y_true.to(device)
@@ -37,6 +36,7 @@ def train_model(
             loss.backward()
             optimizer.step()
             yield loss.item()
+
         if learning_rate_scheduler is not None:
             learning_rate_scheduler.step()
 
