@@ -8,15 +8,14 @@ import pathlib
 import tempfile
 import time
 
-import matplotlib.pyplot as plt
 import netron
 import torch
 import torchinfo
 
 from torch import onnx
 
+from textbrush.applications import imageclassifier
 from textbrush.applications import textgenerator
-from textbrush.datasets import mnist
 
 MAX_TRAINING_ITERATIONS = 5000
 TEXT_GENERATION_LENGTH = 1000
@@ -121,12 +120,8 @@ def image_classifier_application():
     """
     Image classifier application.
     """
-    dataset = mnist.Mnist(train=True)
-    image, label = dataset[0]
-    plt.imshow(image, cmap="gray")
-    plt.title(f"Label: {label}")
-    plt.axis("off")
-    plt.show()
+    image_classifier = imageclassifier.ImageClassifier()
+    image_classifier()
 
 
 def train_application(application, num_tokens_in_batch, device, output_path):
