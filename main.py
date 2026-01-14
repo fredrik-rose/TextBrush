@@ -128,6 +128,11 @@ def image_classifier_application(args, device):
     Image classifier application.
     """
     image_classifier = imageclassifier.ImageClassifier()
+
+    if args.visualize_model:
+        visualize_model(image_classifier.model, torch.unsqueeze(image_classifier.dataset[0][0], 0))
+        return
+
     image_classifier(args.n, device)
 
 
