@@ -83,7 +83,7 @@ class GPT(nn.Module):
             out_features=vocab_size,
         )
 
-        self.register_buffer("mask", torch.tril(torch.ones(num_tokens, num_tokens), diagonal=0))
+        self.register_buffer("mask", torch.tril(torch.ones(num_tokens, num_tokens), diagonal=0))  # (T, T)
 
         self.reset_parameters()
 
@@ -96,8 +96,9 @@ class GPT(nn.Module):
         x: torch.Tensor,
     ) -> torch.Tensor:
         num_tokens = x.size(1)
+        mask = self.mask[:num_tokens, :num_tokens].unsqueeze(0)  # (1, T, T)
         x = self.token_embedding(x)  # (B, T) -> (B, T, D)
-        x = self.transformer(x, mask=self.mask[:num_tokens, :num_tokens])  # (B, T, D)
+        x = self.transformer(x, mask=mask)  # (B, T, D)
         x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 

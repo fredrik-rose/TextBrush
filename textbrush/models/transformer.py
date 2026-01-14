@@ -72,7 +72,7 @@ class PositionalEncoder(nn.Module):
     ):
         super().__init__()
 
-        self.pos_embed = nn.parameter.Parameter(torch.zeros(num_tokens, embed_dim))
+        self.pos_embed = nn.parameter.Parameter(torch.zeros(1, num_tokens, embed_dim))  # (1, T, D)
         self.dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
@@ -84,8 +84,8 @@ class PositionalEncoder(nn.Module):
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        x = x + self.pos_embed[: x.size(1)]
-        x = self.dropout(x)
+        x = x + self.pos_embed[:, : x.size(1), :]  # (B, t, D) + (1, t, D) -> (B, t, D)
+        x = self.dropout(x)  # (B, t, D)
         return x
 
 
@@ -228,11 +228,20 @@ class MultiHeadAttention(nn.Module):
         value: torch.Tensor,
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        if mask is not None:
+            mask = mask.unsqueeze(1)
         query = split_heads(self.query_proj(query), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         key = split_heads(self.key_proj(key), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         value = split_heads(self.value_proj(value), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
         x = merge_heads(  # (B, H, T, Dh) -> (B, T, D)
-            scaled_dot_product_attention(query=query, key=key, value=value, dropout=self.attention_dropout, mask=mask)
+            scaled_dot_product_attention(
+                query=query,
+                key=key,
+                value=value,
+                training=self.training,
+                dropout=self.attention_dropout,
+                mask=mask,
+            )
         )
         x = self.out_proj(x)  # (B, T, D)
         x = self.dropout(x)
@@ -267,6 +276,8 @@ class FeedForwardNetwork(nn.Module):
             ),
             nn.Dropout(dropout),
         )
+
+        self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
         init_xavier_uniform(self.network[0])
@@ -321,6 +332,7 @@ def scaled_dot_product_attention(
     key: torch.Tensor,
     value: torch.Tensor,
     dropout: float = 0.0,
+    training: bool = False,
     mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """
@@ -331,6 +343,6 @@ def scaled_dot_product_attention(
     if mask is not None:
         attention_score = attention_score.masked_fill(mask == 0, float("-inf"))  # (B*, T, T)
     attention_weight = F.softmax(attention_score, dim=-1)  # (B*, T, T)
-    attention_weight = F.dropout(attention_weight, p=dropout)  # (B*, T, T)
+    attention_weight = F.dropout(attention_weight, p=dropout, training=training)  # (B*, T, T)
     output = attention_weight @ value  # (B*, T, T) @ (B*, T, D) -> (B*, T, D)
     return output
