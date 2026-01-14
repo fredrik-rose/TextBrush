@@ -81,7 +81,7 @@ class Textgenerator:
     def train(
         self,
         device: str,
-    ):
+    ) -> typing.Generator[float, None, None]:
         """
         Train the model.
         """
@@ -100,7 +100,7 @@ class Textgenerator:
     def eval(
         self,
         device: str,
-    ):
+    ) -> float:
         """
         Evaluate the model in the validation dataset.
         """
@@ -125,7 +125,11 @@ class FlattenedCrossEntropy(nn.Module):
         super().__init__()
         self.loss = nn.CrossEntropyLoss()
 
-    def forward(self, y_pred, y_true):  # pylint: disable=missing-function-docstring
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        y_pred: torch.Tensor,
+        y_true: torch.Tensor,
+    ) -> torch.Tensor:
         batch, tokens, classes = y_pred.shape
         y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
         y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)

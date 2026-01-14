@@ -7,11 +7,13 @@ import datetime
 import pathlib
 import tempfile
 import time
+import typing
 
 import netron
 import torch
 import torchinfo
 
+from torch import nn
 from torch import onnx
 
 from textbrush.applications import imageclassifier
@@ -28,7 +30,7 @@ class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDef
     """
 
 
-def main():
+def main() -> None:
     """
     Entry point.
     """
@@ -45,7 +47,7 @@ def main():
             assert False
 
 
-def parse():
+def parse() -> argparse.Namespace:
     """
     Argument parser.
     """
@@ -94,7 +96,7 @@ def parse():
     return args
 
 
-def get_device():
+def get_device() -> str:
     """
     get the "best" available device.
     """
@@ -102,7 +104,10 @@ def get_device():
     return device
 
 
-def text_generator_application(args, device):
+def text_generator_application(
+    args: argparse.Namespace,
+    device: str,
+) -> None:
     """
     Text generator application.
     """
@@ -123,7 +128,10 @@ def text_generator_application(args, device):
         print(char, end="", flush=True)
 
 
-def image_classifier_application(args, device):
+def image_classifier_application(
+    args: argparse.Namespace,
+    device: str,
+) -> None:
     """
     Image classifier application.
     """
@@ -136,7 +144,12 @@ def image_classifier_application(args, device):
     image_classifier(args.n, device)
 
 
-def train_application(application, num_tokens_in_batch, device, output_path):
+def train_application(
+    application: typing.Any,
+    num_tokens_in_batch: int,
+    device: str,
+    output_path: pathlib.Path,
+) -> None:
     """
     Train an application.
     """
@@ -172,7 +185,7 @@ def train_application(application, num_tokens_in_batch, device, output_path):
     print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
 
 
-def get_num_parameters(model):
+def get_num_parameters(model: nn.Module) -> int:
     """
     get the number of parameters of a model.
     """
@@ -180,7 +193,11 @@ def get_num_parameters(model):
     return num_parameters
 
 
-def visualize_model(model, example_input, depth: int = 7):
+def visualize_model(
+    model: nn.Module,
+    example_input: torch.Tensor,
+    depth: int = 7,
+) -> None:
     """
     Visualize a model using the Netron application.
     """
