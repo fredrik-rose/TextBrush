@@ -16,7 +16,8 @@ class ImageClassifier:
         self.dataset = mnist.Mnist(train=True)
 
     def __call__(self) -> None:
-        image, label = self.dataset[0]
+        image_tensor, label = self.dataset[0]
+        image = mnist.to_image(image_tensor)
         plt.imshow(image, cmap="gray")
         plt.title(f"Label: {label}")
         plt.axis("off")
