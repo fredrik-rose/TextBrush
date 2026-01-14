@@ -34,6 +34,70 @@ def main():
 
     device = get_device()
 
+    match args.application:
+        case "text":
+            text_generator_application(args, device)
+        case "image":
+            image_classifier_application()
+        case _:
+            assert False
+
+
+def parse():
+    """
+    Argument parser.
+    """
+    parser = argparse.ArgumentParser(
+        description="Text Brush application.",
+        formatter_class=TextBrushHelpFormatter,
+    )
+    parser.add_argument(
+        "--train",
+        action="store_true",
+        help="train the model of the application",
+    )
+    parser.add_argument(
+        "-v",
+        "--visualize-model",
+        action="store_true",
+        help="visualize the model of the application",
+    )
+
+    subparsers = parser.add_subparsers(dest="application", help="Application", required=True)
+
+    text_generator_parser = subparsers.add_parser("text", help="Shakespeare text generator")
+    text_generator_parser.add_argument(
+        "-p",
+        "--prompt",
+        type=str,
+        help="prompt",
+        default=None,
+    )
+    text_generator_parser.add_argument(
+        "-n",
+        type=int,
+        help="length (number of characters) of text to generate",
+        default=TEXT_GENERATION_LENGTH,
+    )
+
+    subparsers.add_parser("image", help="Hand-written digit classifier")
+
+    args = parser.parse_args()
+    return args
+
+
+def get_device():
+    """
+    get the "best" available device.
+    """
+    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    return device
+
+
+def text_generator_application(args, device):
+    """
+    Text generator application.
+    """
     if args.train:
         text_generator = textgenerator.Textgenerator()
         num_tokens_in_batch = textgenerator.BATCH_SIZE * textgenerator.MAX_TOKENS
@@ -51,48 +115,11 @@ def main():
         print(char, end="", flush=True)
 
 
-def parse():
+def image_classifier_application():
     """
-    Argument parser.
+    Image classifier application.
     """
-    parser = argparse.ArgumentParser(
-        description="Text Brush application.",
-        formatter_class=TextBrushHelpFormatter,
-    )
-    parser.add_argument(
-        "--train",
-        action="store_true",
-        help="train the model of the application",
-    )
-    parser.add_argument(
-        "-p",
-        "--prompt",
-        type=str,
-        help="prompt",
-        default=None,
-    )
-    parser.add_argument(
-        "-n",
-        type=int,
-        help="length (number of characters) of text to generate",
-        default=TEXT_GENERATION_LENGTH,
-    )
-    parser.add_argument(
-        "-v",
-        "--visualize-model",
-        action="store_true",
-        help="visualize the model of the application",
-    )
-    args = parser.parse_args()
-    return args
-
-
-def get_device():
-    """
-    get the "best" available device.
-    """
-    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-    return device
+    print("Image classifier")
 
 
 def train_application(application, num_tokens_in_batch, device, output_path):
