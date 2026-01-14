@@ -268,7 +268,7 @@ class FeedForwardNetwork(nn.Module):
                 out_features=feed_forward_dim,
                 bias=bias,
             ),
-            nn.ReLU(),
+            nn.GELU(),
             nn.Linear(
                 in_features=feed_forward_dim,
                 out_features=embed_dim,
