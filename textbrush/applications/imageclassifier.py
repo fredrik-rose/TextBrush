@@ -3,8 +3,21 @@ Hand-written digit image classifier.
 """
 
 import matplotlib.pyplot as plt
+import torch
 
 from textbrush.datasets import mnist
+from textbrush.models import vit
+
+NUM_CLASSES = 10
+
+PATCH_SIZE = 4
+NUM_LAYERS = 6
+NUM_HEADS = 4
+EMBEDDED_DIMENSION = 32
+FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
+
+DROPOUT = 0.1
+ATTENTION_DROPOUT = DROPOUT
 
 
 class ImageClassifier:
@@ -14,11 +27,26 @@ class ImageClassifier:
 
     def __init__(self):
         self.dataset = mnist.Mnist(train=True)
+        channels, height, width = self.dataset[0][0].shape
+        self.model = vit.ViT(
+            num_classes=NUM_CLASSES,
+            channels=channels,
+            height=height,
+            width=width,
+            patch_size=PATCH_SIZE,
+            num_layers=NUM_LAYERS,
+            num_heads=NUM_HEADS,
+            embed_dim=EMBEDDED_DIMENSION,
+            feed_forward_dim=FEED_FORWARD_DIMENSION,
+            dropout=DROPOUT,
+            attention_dropout=ATTENTION_DROPOUT,
+        )
 
     def __call__(self) -> None:
-        image_tensor, label = self.dataset[0]
+        image_tensor, true_label = self.dataset[0]
+        pred_label = torch.argmax(self.model(image_tensor.unsqueeze(0))).item()
         image = mnist.to_image(image_tensor)
         plt.imshow(image, cmap="gray")
-        plt.title(f"Label: {label}")
+        plt.title(f"True: {true_label}, Predicted: {pred_label}")
         plt.axis("off")
         plt.show()

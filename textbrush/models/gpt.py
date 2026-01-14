@@ -14,38 +14,6 @@ from torch import nn
 from . import transformer
 
 
-class TextEmbedder(nn.Module):
-    """
-    Create embeddings for a fixed vocabulary.
-
-    A simple lookup table, each token (number) gets a corresponding vector.
-    """
-
-    def __init__(
-        self,
-        vocab_size: int,
-        embed_dim: int,
-    ):
-        super().__init__()
-
-        self.text_embed = nn.Embedding(
-            num_embeddings=vocab_size,
-            embedding_dim=embed_dim,
-        )
-
-        self.reset_parameters()
-
-    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.normal_(self.text_embed.weight, mean=0.0, std=0.02)
-
-    def forward(  # pylint: disable=missing-function-docstring
-        self,
-        x: torch.Tensor,
-    ) -> torch.Tensor:
-        x = self.text_embed(x)  # (B, T) -> (B, T, D)
-        return x
-
-
 class GPT(nn.Module):
     """
     Generative pre-trained transformer.
@@ -122,3 +90,35 @@ class GPT(nn.Module):
                 next_token = torch.multinomial(probs, num_samples=1)  # (B, C) -> (B, 1)
                 tokens = torch.cat((tokens, next_token), dim=-1)  # (B, T+1)
                 yield next_token.item()
+
+
+class TextEmbedder(nn.Module):
+    """
+    Create embeddings for a fixed vocabulary.
+
+    A simple lookup table, each token (number) gets a corresponding vector.
+    """
+
+    def __init__(
+        self,
+        vocab_size: int,
+        embed_dim: int,
+    ):
+        super().__init__()
+
+        self.text_embed = nn.Embedding(
+            num_embeddings=vocab_size,
+            embedding_dim=embed_dim,
+        )
+
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        nn.init.normal_(self.text_embed.weight, mean=0.0, std=0.02)
+
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
+        x = self.text_embed(x)  # (B, T) -> (B, T, D)
+        return x
