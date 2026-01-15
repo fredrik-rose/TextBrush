@@ -3,6 +3,7 @@ The text brush entry point.
 """
 
 import argparse
+import contextlib
 import datetime
 import pathlib
 import tempfile
@@ -20,8 +21,22 @@ from textbrush.applications import imageclassifier
 from textbrush.applications import textgenerator
 
 TRAINING_ITERATIONS = 5000
+EPOCHS = 10
 DEFAULT_TEXT_GENERATION_LENGTH = 1000
 DEFAULT_NUM_IMAGES = 5
+
+
+@contextlib.contextmanager
+def time_it():
+    """
+    Context manager for measuring time, with intermediate "checkpoints".
+    """
+    start = time.time()
+    state = {}
+    try:
+        yield state
+    finally:
+        state["elapsed"] = time.time() - start
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -161,42 +176,43 @@ def train_application(
     """
     Train an application.
     """
-    num_params = get_num_parameters(application.model)
-
+    epoch_size = TRAINING_ITERATIONS // EPOCHS
     trainer = application.train(device)
-    step_size = TRAINING_ITERATIONS // 10
     best_loss = float("inf")
-    loss = 0.0
-    start = time.time()
-    t0 = start
 
     print(
-        f"\nStarting training | Device: {device} | #Params: {num_params / 1e6:.2f}M | "
+        f"\nStarting training | "
+        f"Device: {device} |"
+        f" #Params: {get_num_parameters(application.model) / 1e6:.2f}M | "
         f"Iterations: {TRAINING_ITERATIONS}"
     )
 
-    for i in range(TRAINING_ITERATIONS):
-        loss += next(trainer)
+    with time_it() as total_time:
+        for e in range(EPOCHS):
+            with time_it() as train_time:
+                train_loss = sum(next(trainer) for _ in range(epoch_size)) / epoch_size
+            tokens_per_sec = (epoch_size * num_tokens_in_batch) / train_time["elapsed"]
 
-        if i % step_size == (step_size - 1):
-            dt = time.time() - t0
-            tokens_per_sec = (step_size * num_tokens_in_batch) / dt
-            val_loss = application.eval(device)
-
-            if val_loss < best_loss:
-                best_loss = val_loss
-                application.save()
+            with time_it() as val_time:
+                val_loss = application.eval(device)
+                if val_loss < best_loss:
+                    best_loss = val_loss
+                    application.save()
 
             print(
-                f"{i + 1}/{TRAINING_ITERATIONS} | train loss: {loss / step_size:.4f} | "
-                f"val loss: {val_loss:.4f} | dt: {dt:.2f}s | tokens/sec: {tokens_per_sec:.2f}"
+                f"{e + 1}/{EPOCHS} | "
+                f"train loss: {train_loss:.4f} | "
+                f"val loss: {val_loss:.4f} | "
+                f"train time: {train_time['elapsed']:.2f}s | "
+                f"val time: {val_time['elapsed']:.2f}s | "
+                f"tokens/sec: {tokens_per_sec:.2f}"
             )
 
-            t0 = time.time()
-            loss = 0.0
-
-    elapsed_time = round(time.time() - start)
-    print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
+    print(
+        f"Training finished | "
+        f"Time: {datetime.timedelta(seconds=round(total_time['elapsed']))} | "
+        f"Best loss: {best_loss:.4f}\n"
+    )
 
 
 def get_num_parameters(model: nn.Module) -> int:
