@@ -29,7 +29,7 @@ class TinyShakespeare(torchdata.Dataset):
         self.text = torch.tensor(self.encode(text))
         self.block_size = block_size
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.text) - self.block_size
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:

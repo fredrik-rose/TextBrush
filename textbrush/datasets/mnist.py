@@ -36,7 +36,7 @@ class Mnist(torchdata.Dataset):
             download=True,
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.dataset)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:

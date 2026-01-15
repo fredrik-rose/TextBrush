@@ -88,7 +88,7 @@ class ViT(nn.Module):
         logits = self(image.unsqueeze(0))
         probs = F.softmax(logits[0], dim=-1)
         class_index = torch.argmax(probs)
-        return class_index.item()
+        return int(class_index.item())
 
 
 class VisionEmbedder(nn.Module):

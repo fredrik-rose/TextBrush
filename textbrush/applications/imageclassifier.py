@@ -69,14 +69,14 @@ class ImageClassifier(application.Application):
         """
         Classify images.
         """
-        validation_dataset = mnist.Mnist(train=False)
-        for i, (image_tensor, true_label) in enumerate(validation_dataset):
+        data_loader = torchdata.DataLoader(mnist.Mnist(train=False), batch_size=1)
+        for i, (image_tensor, true_label) in enumerate(data_loader):
             if i >= num_images:
                 break
-            pred_label = self.model.classify(image_tensor, device=device)
+            pred_label = self.model.classify(image_tensor[0], device=device)
             image = mnist.to_image(image_tensor)
             plt.imshow(image, cmap="gray")
-            plt.title(f"True: {true_label}, Predicted: {pred_label}")
+            plt.title(f"True: {true_label[0]}, Predicted: {pred_label}")
             plt.axis("off")
             plt.show()
 

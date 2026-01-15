@@ -89,7 +89,7 @@ class GPT(nn.Module):
             probs = F.softmax(logits, dim=-1)  # (B, C)
             next_token = torch.multinomial(probs, num_samples=1)  # (B, C) -> (B, 1)
             tokens = torch.cat((tokens, next_token), dim=-1)  # (B, T+1)
-            yield next_token.item()
+            yield int(next_token.item())
 
 
 class TextEmbedder(nn.Module):

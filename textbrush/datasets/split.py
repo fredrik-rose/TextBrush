@@ -6,15 +6,15 @@ import torch.utils.data as torchdata
 
 
 def split_ordered(
-    dataset: torchdata.dataset,
+    dataset: torchdata.Dataset,
     ratios: list[float],
-) -> tuple[torchdata.dataset, torchdata.dataset]:
+) -> list[torchdata.Subset]:
     """
     Split dataset into subsets, keeping the order.
     """
     assert abs(sum(ratios) - 1.0) < 1e-6
 
-    dataset_size = len(dataset)
+    dataset_size = len(dataset)  # type: ignore[arg-type]
 
     cumsum = [0.0]
     for r in ratios:
@@ -28,9 +28,9 @@ def split_ordered(
 
 
 def split_random(
-    dataset: torchdata.dataset,
+    dataset: torchdata.Dataset,
     ratios: list[float],
-) -> tuple[torchdata.dataset, torchdata.dataset]:
+) -> list[torchdata.Subset]:
     """
     Split dataset into subsets randomly.
     """

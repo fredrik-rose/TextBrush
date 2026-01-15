@@ -235,7 +235,7 @@ def visualize_model(
 
     with tempfile.TemporaryDirectory() as temp_dir:
         model_path = pathlib.Path(temp_dir) / "model.onnx"
-        onnx.export(model, example_input, model_path, input_names=["input"], output_names=["output"])
+        onnx.export(model, (example_input,), model_path, input_names=["input"], output_names=["output"])
         netron.start(str(model_path))
         netron.wait()
 

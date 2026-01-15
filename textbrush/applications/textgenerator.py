@@ -69,12 +69,12 @@ class Textgenerator(application.Application):
         """
         Generate text given a prompt.
         """
-        tokens = self.dataset.encode(prompt)
+        tokens = self.dataset.encode(prompt)  # type: ignore[attr-defined]
         generator = self.model.generate(tokens, device=device)
         yield prompt
         for _ in range(length):
             try:
-                yield self.dataset.decode([next(generator)])
+                yield self.dataset.decode([next(generator)])  # type: ignore[attr-defined]
             except StopIteration:
                 assert False
         yield "\n"
