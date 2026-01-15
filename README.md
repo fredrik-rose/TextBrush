@@ -15,7 +15,7 @@ python main.py --help
 
 To train the model (neural network) of the application run:
 ```
-python main.py --train text
+python main.py --train <application>
 ```
 
 ### Generate Text
@@ -25,11 +25,18 @@ To generate text (1000 characters with prompt "QUEEN") run:
 python main.py text -p "QUEEN" -n 1000
 ```
 
+### Classify Images
+
+To classify images (10 images) run:
+```
+python main.py image -n 10
+```
+
 ### Visualize the Model
 
 To train the model (neural network) of the application run:
 ```
-python main.py --visualize-model text
+python main.py --visualize-model <application>
 ```
 
 ## Relevant Papers
