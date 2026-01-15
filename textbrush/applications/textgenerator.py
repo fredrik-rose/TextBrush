@@ -37,10 +37,7 @@ class Textgenerator:
     Text generator using a GPT model as backend.
     """
 
-    def __init__(
-        self,
-        model_path: pathlib.Path | None = None,
-    ):
+    def __init__(self):
         self.dataset = tinyshakespeare.TinyShakespeare(
             block_size=MAX_TOKENS,
         )
@@ -55,9 +52,6 @@ class Textgenerator:
             attention_dropout=ATTENTION_DROPOUT,
         )
         self.split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
-
-        if model_path:
-            self.model.load_state_dict(torch.load(model_path, weights_only=True))
 
     def __call__(
         self,
@@ -77,6 +71,24 @@ class Textgenerator:
             except StopIteration:
                 assert False
         yield "\n"
+
+    def save(
+        self,
+        model_file_path: pathlib.Path = MODEL_PATH,
+    ) -> None:
+        """
+        Save the model.
+        """
+        torch.save(self.model.state_dict(), model_file_path)
+
+    def load(
+        self,
+        model_file_path: pathlib.Path = MODEL_PATH,
+    ) -> None:
+        """
+        Load the model.
+        """
+        self.model.load_state_dict(torch.load(model_file_path, weights_only=True))
 
     def train(
         self,

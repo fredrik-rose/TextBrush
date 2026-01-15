@@ -111,13 +111,14 @@ def text_generator_application(
     """
     Text generator application.
     """
+    text_generator = textgenerator.Textgenerator()
+
     if args.train:
-        text_generator = textgenerator.Textgenerator()
         num_tokens_in_batch = textgenerator.BATCH_SIZE * textgenerator.MAX_TOKENS
-        train_application(text_generator, num_tokens_in_batch, device, textgenerator.MODEL_PATH)
+        train_application(text_generator, num_tokens_in_batch, device)
         return
 
-    text_generator = textgenerator.Textgenerator(textgenerator.MODEL_PATH)
+    text_generator.load()
 
     if args.visualize_model:
         visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], 0))
@@ -148,7 +149,6 @@ def train_application(
     application: typing.Any,
     num_tokens_in_batch: int,
     device: str,
-    output_path: pathlib.Path,
 ) -> None:
     """
     Train an application.
@@ -174,7 +174,7 @@ def train_application(
             val_loss = application.eval(device)
             if val_loss < best_loss:
                 best_loss = val_loss
-                torch.save(application.model.state_dict(), output_path)
+                application.save()
             print(
                 f"{i + 1}/{MAX_TRAINING_ITERATIONS} | train loss: {total_loss / step_size:.4f} | "
                 f"val loss: {val_loss:.4f} | dt: {dt:.2f}s | tokens/sec: {tokens_per_sec:.2f}"
