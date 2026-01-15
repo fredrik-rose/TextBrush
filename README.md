@@ -39,6 +39,14 @@ To train the model (neural network) of the application run:
 python main.py --visualize-model <application>
 ```
 
+### Run Static Code Analyzers
+
+To check all linters run:
+
+```
+make lint
+```
+
 ## Datasets
 
 The datasets used are Tiny Shakespeare and MNIST.

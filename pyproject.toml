@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 120
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.pylint.main]
+max-line-length = 120
+max-args = 15
+disable = [
+    "bad-inline-option",
+    "deprecated-pragma",
+    "duplicate-code",
+    "file-ignored",
+    "locally-disabled",
+    "logging-fstring-interpolation",
+    "raw-checker-failed",
+    "suppressed-message",
+    "use-implicit-booleaness-not-comparison-to-string",
+    "use-implicit-booleaness-not-comparison-to-zero",
+    "use-symbolic-message-instead",
+    "useless-suppression",
+]
