@@ -18,6 +18,11 @@ To train the model (neural network) of the application run:
 python main.py --train <application>
 ```
 
+To monitor the GPU run:
+```
+watch -n 1 nvidia-smi
+```
+
 ### Generate Text
 
 To generate text (1000 characters with prompt "QUEEN") run:
@@ -42,7 +47,6 @@ python main.py --visualize-model <application>
 ### Run Static Code Analyzers
 
 To check all linters run:
-
 ```
 make lint
 ```
@@ -55,7 +59,7 @@ The datasets used are Tiny Shakespeare and MNIST.
 
 - Attention Is All You Need: https://arxiv.org/abs/1706.03762
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT): https://arxiv.org/abs/2010.11929
-- Language Models are Few-Shot Learners: https://arxiv.org/abs/2005.14165
+- Language Models are Few-Shot Learners (GPT): https://arxiv.org/abs/2005.14165
 - Deep Residual Learning for Image Recognition (ResNet): https://arxiv.org/abs/1512.03385
 - Layer Normalization: https://arxiv.org/abs/1607.06450
 - Dropout: https://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf
