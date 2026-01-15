@@ -69,7 +69,7 @@ class ImageClassifier(application.Application):
         """
         Classify images.
         """
-        data_loader = torchdata.DataLoader(mnist.Mnist(train=False), batch_size=1)
+        data_loader = torchdata.DataLoader(mnist.Mnist(train=False), batch_size=1, shuffle=True)
         for i, (image_tensor, true_label) in enumerate(data_loader):
             if i >= num_images:
                 break
