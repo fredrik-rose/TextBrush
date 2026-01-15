@@ -19,9 +19,9 @@ from textbrush.applications import application as app
 from textbrush.applications import imageclassifier
 from textbrush.applications import textgenerator
 
-MAX_TRAINING_ITERATIONS = 5000
-TEXT_GENERATION_LENGTH = 1000
-NUM_IMAGES = 5
+TRAINING_ITERATIONS = 5000
+DEFAULT_TEXT_GENERATION_LENGTH = 1000
+DEFAULT_NUM_IMAGES = 5
 
 
 class TextBrushHelpFormatter(argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -35,7 +35,6 @@ def main() -> None:
     Entry point.
     """
     args = parse()
-
     device = get_device()
 
     match args.application:
@@ -81,7 +80,7 @@ def parse() -> argparse.Namespace:
         "-n",
         type=int,
         help="length (number of characters) of text to generate",
-        default=TEXT_GENERATION_LENGTH,
+        default=DEFAULT_TEXT_GENERATION_LENGTH,
     )
 
     image_classifier_parser = subparsers.add_parser("image", help="Hand-written digit classifier")
@@ -89,7 +88,7 @@ def parse() -> argparse.Namespace:
         "-n",
         type=int,
         help="number of images to classify",
-        default=NUM_IMAGES,
+        default=DEFAULT_NUM_IMAGES,
     )
 
     args = parser.parse_args()
@@ -121,11 +120,11 @@ def text_generator_application(
     text_generator.load()
 
     if args.visualize_model:
-        visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], 0))
+        visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], dim=0))
         return
 
     prompt = "\n" if args.prompt is None else args.prompt
-    for char in text_generator(prompt, args.n, device):
+    for char in text_generator(prompt=prompt, length=args.n, device=device):
         print(char, end="", flush=True)
 
 
@@ -148,10 +147,10 @@ def image_classifier_application(
     image_classifier.load()
 
     if args.visualize_model:
-        visualize_model(image_classifier.model, torch.unsqueeze(image_classifier.dataset[0][0], 0))
+        visualize_model(image_classifier.model, torch.unsqueeze(image_classifier.dataset[0][0], dim=0))
         return
 
-    image_classifier(args.n, device)
+    image_classifier(num_images=args.n, device=device)
 
 
 def train_application(
@@ -165,38 +164,44 @@ def train_application(
     num_params = get_num_parameters(application.model)
 
     trainer = application.train(device)
+    step_size = TRAINING_ITERATIONS // 10
+    best_loss = float("inf")
+    loss = 0.0
+    start = time.time()
+    t0 = start
 
     print(
         f"\nStarting training | Device: {device} | #Params: {num_params / 1e6:.2f}M | "
-        f"Iterations: {MAX_TRAINING_ITERATIONS}"
+        f"Iterations: {TRAINING_ITERATIONS}"
     )
-    step_size = MAX_TRAINING_ITERATIONS // 10
-    start = time.time()
-    t0 = start
-    best_loss = float("inf")
-    total_loss = 0.0
-    for i in range(MAX_TRAINING_ITERATIONS):
-        total_loss += next(trainer)
+
+    for i in range(TRAINING_ITERATIONS):
+        loss += next(trainer)
+
         if i % step_size == (step_size - 1):
             dt = time.time() - t0
             tokens_per_sec = (step_size * num_tokens_in_batch) / dt
             val_loss = application.eval(device)
+
             if val_loss < best_loss:
                 best_loss = val_loss
                 application.save()
+
             print(
-                f"{i + 1}/{MAX_TRAINING_ITERATIONS} | train loss: {total_loss / step_size:.4f} | "
+                f"{i + 1}/{TRAINING_ITERATIONS} | train loss: {loss / step_size:.4f} | "
                 f"val loss: {val_loss:.4f} | dt: {dt:.2f}s | tokens/sec: {tokens_per_sec:.2f}"
             )
+
             t0 = time.time()
-            total_loss = 0.0
+            loss = 0.0
+
     elapsed_time = round(time.time() - start)
     print(f"Training finished | Time: {datetime.timedelta(seconds=elapsed_time)}\n")
 
 
 def get_num_parameters(model: nn.Module) -> int:
     """
-    get the number of parameters of a model.
+    Get the number of parameters of a model.
     """
     num_parameters = sum(p.numel() for p in model.parameters())
     return num_parameters
@@ -211,6 +216,7 @@ def visualize_model(
     Visualize a model using the Netron application.
     """
     torchinfo.summary(model, input_data=example_input, depth=depth)
+
     with tempfile.TemporaryDirectory() as temp_dir:
         model_path = pathlib.Path(temp_dir) / "model.onnx"
         onnx.export(model, example_input, model_path, input_names=["input"], output_names=["output"])
