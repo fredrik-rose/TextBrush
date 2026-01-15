@@ -29,7 +29,7 @@ DEFAULT_NUM_IMAGES = 5
 @contextlib.contextmanager
 def time_it():
     """
-    Context manager for measuring time, with intermediate "checkpoints".
+    Context manager for measuring time.
     """
     start = time.time()
     state = {}
