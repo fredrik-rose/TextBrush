@@ -7,7 +7,6 @@ import datetime
 import pathlib
 import tempfile
 import time
-import typing
 
 import netron
 import torch
@@ -16,6 +15,7 @@ import torchinfo
 from torch import nn
 from torch import onnx
 
+from textbrush.applications import application as app
 from textbrush.applications import imageclassifier
 from textbrush.applications import textgenerator
 
@@ -146,7 +146,7 @@ def image_classifier_application(
 
 
 def train_application(
-    application: typing.Any,
+    application: app.Application,
     num_tokens_in_batch: int,
     device: str,
 ) -> None:
