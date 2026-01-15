@@ -39,6 +39,10 @@ To train the model (neural network) of the application run:
 python main.py --visualize-model <application>
 ```
 
+## Datasets
+
+The datasets used are Tiny Shakespeare and MNIST.
+
 ## Relevant Papers
 
 - Attention Is All You Need: https://arxiv.org/abs/1706.03762
