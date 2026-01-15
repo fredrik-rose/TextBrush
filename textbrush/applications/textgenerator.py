@@ -31,6 +31,8 @@ DATASET_SPLIT = 0.99
 BATCH_SIZE = 32
 LEARNING_RATE = 3e-4
 
+TOP_K = 10
+
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "text-generator.pth"
 
 
@@ -70,7 +72,7 @@ class Textgenerator(application.Application):
         Generate text given a prompt.
         """
         tokens = self.dataset.encode(prompt)  # type: ignore[attr-defined]
-        generator = self.model.generate(tokens, device=device)
+        generator = self.model.generate(tokens, k=TOP_K, device=device)
         yield prompt
         for _ in range(length):
             try:

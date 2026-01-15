@@ -51,7 +51,6 @@ def eval_model(
     """
     Evaluate a model.
     """
-
     model.eval()
     model.to(device)
 

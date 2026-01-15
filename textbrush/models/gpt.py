@@ -74,6 +74,7 @@ class GPT(nn.Module):
     def generate(
         self,
         prompt: list[int],
+        k: int,
         device: str = "cpu",
     ) -> Generator[int, None, None]:
         """
@@ -86,8 +87,10 @@ class GPT(nn.Module):
             tokens = tokens[:, -self.max_num_tokens :]
             logits = self(tokens)  # (B, T) -> (B, T, C)
             logits = logits[:, -1, :]  # (B, T, C) -> (B, C)
-            probs = F.softmax(logits, dim=-1)  # (B, C)
-            next_token = torch.multinomial(probs, num_samples=1)  # (B, C) -> (B, 1)
+            top_logits, top_indexes = torch.topk(logits, k=k, dim=-1)  # (B, C) -> (B, k)
+            probs = F.softmax(top_logits, dim=-1)  # (B, k)
+            indexes = torch.multinomial(probs, num_samples=1)  # (B, k) -> (B, 1)
+            next_token = torch.gather(top_indexes, dim=-1, index=indexes)  # (B, k) -> (B, 1)
             tokens = torch.cat((tokens, next_token), dim=-1)  # (B, T+1)
             yield int(next_token.item())
 
