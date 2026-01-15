@@ -138,6 +138,15 @@ def image_classifier_application(
     """
     image_classifier = imageclassifier.ImageClassifier()
 
+    if args.train:
+        _, height, width = image_classifier.dataset[0][0].shape
+        patch_size = imageclassifier.PATCH_SIZE
+        num_tokens_in_batch = imageclassifier.BATCH_SIZE * ((height // patch_size) * (width // patch_size) + 1)
+        train_application(image_classifier, num_tokens_in_batch, device)
+        return
+
+    image_classifier.load()
+
     if args.visualize_model:
         visualize_model(image_classifier.model, torch.unsqueeze(image_classifier.dataset[0][0], 0))
         return
