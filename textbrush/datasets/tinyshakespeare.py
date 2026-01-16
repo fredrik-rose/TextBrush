@@ -22,6 +22,7 @@ class Tokenizer:
         vocab = sorted(set(text))
 
         self.vocab_size = len(vocab)
+
         self._int_to_token = dict(enumerate(vocab))
         self._token_to_int = {token: i for i, token in self._int_to_token.items()}
 

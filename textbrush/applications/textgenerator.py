@@ -43,6 +43,9 @@ class Textgenerator(application.Application):
 
     def __init__(self):
         self.tokenizer = tinyshakespeare.Tokenizer()
+
+        self._split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
+
         dataset = tinyshakespeare.TinyShakespeare(
             tokenizer=self.tokenizer,
             block_size=MAX_TOKENS,
@@ -57,7 +60,6 @@ class Textgenerator(application.Application):
             dropout=DROPOUT,
             attention_dropout=ATTENTION_DROPOUT,
         )
-        self.split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
         super().__init__(
             dataset=dataset,
             model=model,
@@ -90,7 +92,7 @@ class Textgenerator(application.Application):
         """
         Train the model.
         """
-        train_dataset, _ = dataset_spliter.split_ordered(self.dataset, self.split)
+        train_dataset, _ = dataset_spliter.split_ordered(self.dataset, self._split)
         data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
         loss_function = FlattenedCrossEntropy()
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
@@ -109,7 +111,7 @@ class Textgenerator(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        _, validation_dataset = dataset_spliter.split_ordered(self.dataset, self.split)
+        _, validation_dataset = dataset_spliter.split_ordered(self.dataset, self._split)
         data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
         loss_function = FlattenedCrossEntropy()
         validation_loss = modeltrainer.eval_model(
@@ -128,7 +130,8 @@ class FlattenedCrossEntropy(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.loss = nn.CrossEntropyLoss()
+
+        self._loss = nn.CrossEntropyLoss()
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
@@ -138,4 +141,4 @@ class FlattenedCrossEntropy(nn.Module):
         batch, tokens, classes = y_pred.shape
         y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
         y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
-        return self.loss(y_pred, y_true)
+        return self._loss(y_pred, y_true)

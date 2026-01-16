@@ -25,7 +25,8 @@ class Application(abc.ABC):
     ):
         self.dataset = dataset
         self.model = model
-        self.default_model_file_path = default_model_file_path
+
+        self._default_model_file_path = default_model_file_path
 
     def save(
         self,
@@ -34,7 +35,7 @@ class Application(abc.ABC):
         """
         Save the model.
         """
-        model_file_path = self.default_model_file_path if model_file_path is None else model_file_path
+        model_file_path = self._default_model_file_path if model_file_path is None else model_file_path
         torch.save(self.model.state_dict(), model_file_path)
 
     def load(
@@ -44,7 +45,7 @@ class Application(abc.ABC):
         """
         Load the model.
         """
-        model_file_path = self.default_model_file_path if model_file_path is None else model_file_path
+        model_file_path = self._default_model_file_path if model_file_path is None else model_file_path
         self.model.load_state_dict(torch.load(model_file_path, weights_only=True))
 
     @abc.abstractmethod

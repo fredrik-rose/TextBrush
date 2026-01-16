@@ -22,8 +22,11 @@ class Mnist(torchdata.Dataset):
     The MNIST dataset.
     """
 
-    def __init__(self, train: bool):
-        self.dataset = torchvision.datasets.MNIST(
+    def __init__(
+        self,
+        train: bool,
+    ):
+        self._dataset = torchvision.datasets.MNIST(
             root=DATASET_PATH,
             train=train,
             transform=v2.Compose(
@@ -37,10 +40,13 @@ class Mnist(torchdata.Dataset):
         )
 
     def __len__(self) -> int:
-        return len(self.dataset)
+        return len(self._dataset)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
-        return self.dataset[idx]
+    def __getitem__(
+        self,
+        idx: int,
+    ) -> tuple[torch.Tensor, int]:
+        return self._dataset[idx]
 
 
 def to_image(tensor: torch.Tensor) -> np.ndarray:
