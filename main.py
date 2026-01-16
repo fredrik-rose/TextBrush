@@ -68,7 +68,11 @@ def main() -> None:
         train_application_model(application, num_tokens_in_batch, device)
         return
 
-    application.load()
+    try:
+        application.load()
+    except FileNotFoundError:
+        print(f"Could not load application '{args.application}', please train it with --train")
+        return
 
     if args.visualize_model:
         visualize_application_model(application)
