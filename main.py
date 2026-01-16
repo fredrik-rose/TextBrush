@@ -128,7 +128,7 @@ def text_generator_application(
     text_generator = textgenerator.Textgenerator()
 
     if args.train:
-        num_tokens_in_batch = textgenerator.BATCH_SIZE * textgenerator.MAX_TOKENS
+        num_tokens_in_batch = textgenerator.BATCH_SIZE * text_generator.model.max_num_tokens
         train_application(text_generator, num_tokens_in_batch, device)
         return
 
@@ -153,9 +153,7 @@ def image_classifier_application(
     image_classifier = imageclassifier.ImageClassifier()
 
     if args.train:
-        _, height, width = image_classifier.dataset[0][0].shape
-        patch_size = imageclassifier.PATCH_SIZE
-        num_tokens_in_batch = imageclassifier.BATCH_SIZE * ((height // patch_size) * (width // patch_size) + 1)
+        num_tokens_in_batch = imageclassifier.BATCH_SIZE * image_classifier.model.max_num_tokens
         train_application(image_classifier, num_tokens_in_batch, device)
         return
 

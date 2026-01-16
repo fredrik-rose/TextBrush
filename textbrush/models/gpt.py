@@ -33,11 +33,12 @@ class GPT(nn.Module):
         super().__init__()
 
         self.max_num_tokens = num_tokens
-        self.token_embedding = TextEmbedder(
+
+        self._token_embedding = TextEmbedder(
             vocab_size=vocab_size,
             embed_dim=embed_dim,
         )
-        self.transformer = transformer.Transformer(
+        self._transformer = transformer.Transformer(
             num_tokens=num_tokens,
             num_layers=num_layers,
             embed_dim=embed_dim,
@@ -46,7 +47,7 @@ class GPT(nn.Module):
             dropout=dropout,
             attention_dropout=attention_dropout,
         )
-        self.lm_head = nn.Linear(
+        self._lm_head = nn.Linear(
             in_features=embed_dim,
             out_features=vocab_size,
         )
@@ -56,8 +57,8 @@ class GPT(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.02)
-        nn.init.zeros_(self.lm_head.bias)
+        nn.init.normal_(self._lm_head.weight, mean=0.0, std=0.02)
+        nn.init.zeros_(self._lm_head.bias)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
@@ -65,9 +66,9 @@ class GPT(nn.Module):
     ) -> torch.Tensor:
         num_tokens = x.size(1)
         mask = self.mask[:num_tokens, :num_tokens].unsqueeze(0)  # (1, T, T)
-        x = self.token_embedding(x)  # (B, T) -> (B, T, D)
-        x = self.transformer(x, mask=mask)  # (B, T, D)
-        x = self.lm_head(x)  # (B, T, D) -> (B, T, C)
+        x = self._token_embedding(x)  # (B, T) -> (B, T, D)
+        x = self._transformer(x, mask=mask)  # (B, T, D)
+        x = self._lm_head(x)  # (B, T, D) -> (B, T, C)
         return x
 
     @torch.no_grad()
@@ -109,7 +110,7 @@ class TextEmbedder(nn.Module):
     ):
         super().__init__()
 
-        self.text_embed = nn.Embedding(
+        self._text_embed = nn.Embedding(
             num_embeddings=vocab_size,
             embedding_dim=embed_dim,
         )
@@ -117,11 +118,11 @@ class TextEmbedder(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.normal_(self.text_embed.weight, mean=0.0, std=0.02)
+        nn.init.normal_(self._text_embed.weight, mean=0.0, std=0.02)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        x = self.text_embed(x)  # (B, T) -> (B, T, D)
+        x = self._text_embed(x)  # (B, T) -> (B, T, D)
         return x

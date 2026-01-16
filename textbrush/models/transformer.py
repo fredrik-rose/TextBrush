@@ -26,11 +26,11 @@ class Transformer(nn.Module):
     ):
         super().__init__()
 
-        self.pos_encoder = PositionalEncoder(
+        self._pos_encoder = PositionalEncoder(
             num_tokens=num_tokens,
             embed_dim=embed_dim,
         )
-        self.blocks = nn.ModuleList(
+        self._blocks = nn.ModuleList(
             [
                 TransformerBlock(
                     embed_dim=embed_dim,
@@ -43,7 +43,7 @@ class Transformer(nn.Module):
                 for _ in range(num_layers)
             ]
         )
-        self.norm = LayerNorm(
+        self._norm = LayerNorm(
             embed_dim=embed_dim,
         )
 
@@ -52,10 +52,10 @@ class Transformer(nn.Module):
         x: torch.Tensor,
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        x = self.pos_encoder(x)
-        for block in self.blocks:
+        x = self._pos_encoder(x)
+        for block in self._blocks:
             x = block(x, mask)
-        x = self.norm(x)
+        x = self._norm(x)
         return x
 
 
@@ -72,20 +72,20 @@ class PositionalEncoder(nn.Module):
     ):
         super().__init__()
 
-        self.pos_embed = nn.parameter.Parameter(torch.zeros(1, num_tokens, embed_dim))  # (1, T, D)
-        self.dropout = nn.Dropout(dropout)
+        self._pos_embed = nn.parameter.Parameter(torch.zeros(1, num_tokens, embed_dim))  # (1, T, D)
+        self._dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.trunc_normal_(self.pos_embed, std=0.02)  # Use a small std to not dominate early in the training.
+        nn.init.trunc_normal_(self._pos_embed, std=0.02)  # Use a small std to not dominate early in the training.
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        x = x + self.pos_embed[:, : x.size(1), :]  # (B, t, D) + (1, t, D) -> (B, t, D)
-        x = self.dropout(x)  # (B, t, D)
+        x = x + self._pos_embed[:, : x.size(1), :]  # (B, t, D) + (1, t, D) -> (B, t, D)
+        x = self._dropout(x)  # (B, t, D)
         return x
 
 
@@ -105,20 +105,20 @@ class TransformerBlock(nn.Module):
     ):
         super().__init__()
 
-        self.attention_norm = LayerNorm(
+        self._attention_norm = LayerNorm(
             embed_dim=embed_dim,
         )
-        self.multi_head_attention = MultiHeadAttention(
+        self._multi_head_attention = MultiHeadAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             dropout=dropout,
             attention_dropout=attention_dropout,
             bias=bias,
         )
-        self.feed_forward_norm = LayerNorm(
+        self._feed_forward_norm = LayerNorm(
             embed_dim=embed_dim,
         )
-        self.feed_forward_network = FeedForwardNetwork(
+        self._feed_forward_network = FeedForwardNetwork(
             embed_dim=embed_dim,
             feed_forward_dim=feed_forward_dim,
             dropout=dropout,
@@ -130,11 +130,11 @@ class TransformerBlock(nn.Module):
         x: torch.Tensor,
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        r = self.attention_norm(x)
-        r = self.multi_head_attention(query=r, key=r, value=r, mask=mask)
+        r = self._attention_norm(x)
+        r = self._multi_head_attention(query=r, key=r, value=r, mask=mask)
         x = x + r
-        r = self.feed_forward_norm(x)
-        r = self.feed_forward_network(r)
+        r = self._feed_forward_norm(x)
+        r = self._feed_forward_network(r)
         x = x + r
         return x
 
@@ -151,15 +151,15 @@ class LayerNorm(nn.Module):
     ):
         super().__init__()
 
-        self.epsilon = epsilon
-        self.scale = nn.Parameter(torch.ones(embed_dim))
-        self.shift = nn.Parameter(torch.zeros(embed_dim))
+        self._epsilon = epsilon
+        self._scale = nn.Parameter(torch.ones(embed_dim))
+        self._shift = nn.Parameter(torch.zeros(embed_dim))
 
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.ones_(self.scale)
-        nn.init.zeros_(self.shift)
+        nn.init.ones_(self._scale)
+        nn.init.zeros_(self._shift)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
@@ -167,8 +167,8 @@ class LayerNorm(nn.Module):
     ) -> torch.Tensor:
         mean = torch.mean(x, dim=-1, keepdim=True)
         variance = torch.var(x, dim=-1, keepdim=True, unbiased=False)
-        x = (x - mean) / ((variance + self.epsilon) ** 0.5)
-        x = self.scale * x + self.shift
+        x = (x - mean) / ((variance + self._epsilon) ** 0.5)
+        x = self._scale * x + self._shift
         return x
 
 
@@ -189,37 +189,37 @@ class MultiHeadAttention(nn.Module):
 
         assert embed_dim % num_heads == 0
 
-        self.num_heads = num_heads
-        self.attention_dropout = attention_dropout
-        self.query_proj = nn.Linear(
+        self._num_heads = num_heads
+        self._attention_dropout = attention_dropout
+        self._query_proj = nn.Linear(
             in_features=embed_dim,
             out_features=embed_dim,
             bias=bias,
         )
-        self.key_proj = nn.Linear(
+        self._key_proj = nn.Linear(
             in_features=embed_dim,
             out_features=embed_dim,
             bias=bias,
         )
-        self.value_proj = nn.Linear(
+        self._value_proj = nn.Linear(
             in_features=embed_dim,
             out_features=embed_dim,
             bias=bias,
         )
-        self.out_proj = nn.Linear(
+        self._out_proj = nn.Linear(
             in_features=embed_dim,
             out_features=embed_dim,
             bias=bias,
         )
-        self.dropout = nn.Dropout(dropout)
+        self._dropout = nn.Dropout(dropout)
 
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        init_xavier_uniform(self.query_proj)
-        init_xavier_uniform(self.key_proj)
-        init_xavier_uniform(self.value_proj)
-        init_xavier_uniform(self.out_proj)
+        init_xavier_uniform(self._query_proj)
+        init_xavier_uniform(self._key_proj)
+        init_xavier_uniform(self._value_proj)
+        init_xavier_uniform(self._out_proj)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
@@ -230,21 +230,21 @@ class MultiHeadAttention(nn.Module):
     ) -> torch.Tensor:
         if mask is not None:
             mask = mask.unsqueeze(1)
-        query = split_heads(self.query_proj(query), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
-        key = split_heads(self.key_proj(key), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
-        value = split_heads(self.value_proj(value), self.num_heads)  # (B, T, D) -> (B, H, T, Dh)
+        query = split_heads(self._query_proj(query), self._num_heads)  # (B, T, D) -> (B, H, T, Dh)
+        key = split_heads(self._key_proj(key), self._num_heads)  # (B, T, D) -> (B, H, T, Dh)
+        value = split_heads(self._value_proj(value), self._num_heads)  # (B, T, D) -> (B, H, T, Dh)
         x = merge_heads(  # (B, H, T, Dh) -> (B, T, D)
             scaled_dot_product_attention(
                 query=query,
                 key=key,
                 value=value,
                 training=self.training,
-                dropout=self.attention_dropout,
+                dropout=self._attention_dropout,
                 mask=mask,
             )
         )
-        x = self.out_proj(x)  # (B, T, D)
-        x = self.dropout(x)
+        x = self._out_proj(x)  # (B, T, D)
+        x = self._dropout(x)
         return x
 
 
@@ -262,7 +262,7 @@ class FeedForwardNetwork(nn.Module):
     ):
         super().__init__()
 
-        self.network = nn.Sequential(
+        self._network = nn.Sequential(
             nn.Linear(
                 in_features=embed_dim,
                 out_features=feed_forward_dim,
@@ -280,14 +280,14 @@ class FeedForwardNetwork(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        init_xavier_uniform(self.network[0])
-        init_xavier_uniform(self.network[2])
+        init_xavier_uniform(self._network[0])
+        init_xavier_uniform(self._network[2])
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        x = self.network(x)
+        x = self._network(x)
         return x
 
 
