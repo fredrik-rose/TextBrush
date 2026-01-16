@@ -36,7 +36,7 @@ TOP_K = 10
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "text-generator.pth"
 
 
-class Textgenerator(application.Application):
+class TextGenerator(application.Application):
     """
     Text generator using a GPT model as backend.
     """

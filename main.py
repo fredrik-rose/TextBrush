@@ -25,6 +25,16 @@ EPOCHS = 10
 DEFAULT_TEXT_GENERATION_LENGTH = 1000
 DEFAULT_NUM_IMAGES = 5
 
+ALL_APPLICATIONS = {
+    "text": textgenerator.TextGenerator(),
+    "image": imageclassifier.ImageClassifier(),
+}
+
+ALL_BATCH_SIZES = {
+    "text": textgenerator.BATCH_SIZE,
+    "image": imageclassifier.BATCH_SIZE,
+}
+
 
 @contextlib.contextmanager
 def time_it():
@@ -51,12 +61,26 @@ def main() -> None:
     """
     args = parse()
     device = get_device()
+    application = ALL_APPLICATIONS[args.application]
+
+    if args.train:
+        num_tokens_in_batch = ALL_BATCH_SIZES[args.application] * application.model.max_num_tokens
+        train_application_model(application, num_tokens_in_batch, device)
+        return
+
+    application.load()
+
+    if args.visualize_model:
+        visualize_application_model(application)
+        return
 
     match args.application:
         case "text":
-            text_generator_application(args, device)
+            prompt = "\n" if args.prompt is None else args.prompt
+            for char in application(prompt=prompt, length=args.n, device=device):  # type: ignore[operator]
+                print(char, end="", flush=True)
         case "image":
-            image_classifier_application(args, device)
+            application(num_images=args.n, device=device)  # type: ignore[operator]
         case _:
             assert False
 
@@ -118,55 +142,7 @@ def get_device() -> str:
     return device
 
 
-def text_generator_application(
-    args: argparse.Namespace,
-    device: str,
-) -> None:
-    """
-    Text generator application.
-    """
-    text_generator = textgenerator.Textgenerator()
-
-    if args.train:
-        num_tokens_in_batch = textgenerator.BATCH_SIZE * text_generator.model.max_num_tokens
-        train_application(text_generator, num_tokens_in_batch, device)
-        return
-
-    text_generator.load()
-
-    if args.visualize_model:
-        visualize_model(text_generator.model, torch.unsqueeze(text_generator.dataset[0][0], dim=0))
-        return
-
-    prompt = "\n" if args.prompt is None else args.prompt
-    for char in text_generator(prompt=prompt, length=args.n, device=device):
-        print(char, end="", flush=True)
-
-
-def image_classifier_application(
-    args: argparse.Namespace,
-    device: str,
-) -> None:
-    """
-    Image classifier application.
-    """
-    image_classifier = imageclassifier.ImageClassifier()
-
-    if args.train:
-        num_tokens_in_batch = imageclassifier.BATCH_SIZE * image_classifier.model.max_num_tokens
-        train_application(image_classifier, num_tokens_in_batch, device)
-        return
-
-    image_classifier.load()
-
-    if args.visualize_model:
-        visualize_model(image_classifier.model, torch.unsqueeze(image_classifier.dataset[0][0], dim=0))
-        return
-
-    image_classifier(num_images=args.n, device=device)
-
-
-def train_application(
+def train_application_model(
     application: app.Application,
     num_tokens_in_batch: int,
     device: str,
@@ -221,14 +197,16 @@ def get_num_parameters(model: nn.Module) -> int:
     return num_parameters
 
 
-def visualize_model(
-    model: nn.Module,
-    example_input: torch.Tensor,
+def visualize_application_model(
+    application: app.Application,
     depth: int = 7,
 ) -> None:
     """
-    Visualize a model using the Netron application.
+    Visualize an application model using the Netron application.
     """
+    model = application.model
+    example_input = torch.unsqueeze(application.dataset[0][0], dim=0)
+
     torchinfo.summary(model, input_data=example_input, depth=depth)
 
     with tempfile.TemporaryDirectory() as temp_dir:
