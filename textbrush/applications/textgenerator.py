@@ -42,11 +42,13 @@ class Textgenerator(application.Application):
     """
 
     def __init__(self):
+        self.tokenizer = tinyshakespeare.Tokenizer()
         dataset = tinyshakespeare.TinyShakespeare(
+            tokenizer=self.tokenizer,
             block_size=MAX_TOKENS,
         )
         model = gpt.GPT(
-            vocab_size=dataset.vocab_size,
+            vocab_size=self.tokenizer.vocab_size,
             num_tokens=MAX_TOKENS,
             num_layers=NUM_LAYERS,
             num_heads=NUM_HEADS,
@@ -71,12 +73,12 @@ class Textgenerator(application.Application):
         """
         Generate text given a prompt.
         """
-        tokens = self.dataset.encode(prompt)  # type: ignore[attr-defined]
+        tokens = self.tokenizer.encode(prompt)  # type: ignore[attr-defined]
         generator = self.model.generate(tokens, k=TOP_K, device=device)
         yield prompt
         for _ in range(length):
             try:
-                yield self.dataset.decode([next(generator)])  # type: ignore[attr-defined]
+                yield self.tokenizer.decode([next(generator)])  # type: ignore[attr-defined]
             except StopIteration:
                 assert False
         yield "\n"
