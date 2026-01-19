@@ -68,6 +68,57 @@ The datasets used are Tiny Shakespeare and MNIST.
 - Layer Normalization: https://arxiv.org/abs/1607.06450
 - Dropout: https://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf
 
+## Applications
+
+This chapter describes the applications.
+
+### Text Generator
+
+This application uses a GPT model to generate text. It uses a very simple character level tokenizer and an embedding
+table to produce the input tokens (note that in more serious work tokenization is an extremely important part). A mask
+is used in the Transformer to avoid cheating by looking ahead. The goal is to predict the next character. To do this
+the head applies a linear layer to convert the output tokens from the embedding dimension to the vocabulary size logits
+with a final softmax to get probabilities. During training all tokens are used in the loss calculation for efficiency,
+during inference only the last token is used. The next character is sampled from the distribution received from the
+last token, using a top-K approach to not derail too much.
+
+```
+>>> python main.py text -p "QUEEN" -n 500
+
+QUEEN ELIZABETH:
+But is this fellow milrds from any stars.
+
+ANGELO:
+I am here true?
+
+ANGELO:
+O, best so: thy brother, and thou canst dost thou seized
+As thou art one penice to company a deer,
+A charge will be part. That if thou back'd to thine own
+If but to the frather bragght-beauty in burness' stail.
+
+LEONTES:
+O beggar; forth thou art.
+
+LEONTES:
+Or if any twice the most ordering:
+And thou must deserves thee her and day?
+
+CLARENCE:
+Why, hath mine else world me to speeds to the princh'd;
+Bounds he is
+```
+
+### Image Classifier
+
+This application implements the ViT architecture. The image is dived into patches which are then flattened and a linear
+layer is used to convert the dimension to the embedding dimension. Each patch is then treated as a token. To do
+classification a CLS token is appended to the patch tokens and it is this token that is then used to perform the
+classification. A linear layer converts from the embedding dimension to number of classes, these logits are then send
+through a softmax to get probabilities. The class is then simply the highest probability class.
+
+![Mnist](Images/mnist.png)
+
 ## Attention
 
 Attention is a mechanism where the input data decides where to focus, i.e. which parts to give the most weight to. This
