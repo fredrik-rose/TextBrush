@@ -18,6 +18,7 @@ from torch import onnx
 
 from textbrush.applications import application as app
 from textbrush.applications import imageclassifier
+from textbrush.applications import imagegenerator
 from textbrush.applications import textgenerator
 
 TRAINING_ITERATIONS = 5000
@@ -27,12 +28,14 @@ DEFAULT_NUM_IMAGES = 5
 
 ALL_APPLICATIONS = {
     "text": textgenerator.TextGenerator(),
-    "image": imageclassifier.ImageClassifier(),
+    "image": imagegenerator.ImageGenerator(),
+    "class": imageclassifier.ImageClassifier(),
 }
 
 ALL_BATCH_SIZES = {
     "text": textgenerator.BATCH_SIZE,
-    "image": imageclassifier.BATCH_SIZE,
+    "image": 0,
+    "class": imageclassifier.BATCH_SIZE,
 }
 
 
@@ -84,6 +87,8 @@ def main() -> None:
             for char in application(prompt=prompt, length=args.n, device=device):  # type: ignore[operator]
                 print(char, end="", flush=True)
         case "image":
+            application(device=device)  # type: ignore[operator]
+        case "class":
             application(num_images=args.n, device=device)  # type: ignore[operator]
         case _:
             assert False
@@ -126,7 +131,9 @@ def parse() -> argparse.Namespace:
         default=DEFAULT_TEXT_GENERATION_LENGTH,
     )
 
-    image_classifier_parser = subparsers.add_parser("image", help="Hand-written digit classifier")
+    subparsers.add_parser("image", help="Hand-written digit image generator")
+
+    image_classifier_parser = subparsers.add_parser("class", help="Hand-written digit classifier")
     image_classifier_parser.add_argument(
         "-n",
         type=int,
