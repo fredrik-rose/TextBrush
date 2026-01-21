@@ -7,6 +7,7 @@ import typing
 
 import matplotlib.pyplot as plt
 import torch
+import torch.utils.data as torchdata
 
 from torch import nn
 
@@ -28,14 +29,17 @@ class ImageGenerator(application.Application):
     """
 
     def __init__(self):
-        dataset = mnist.Mnist(train=True)
         model = NoisePredictor()
         betas = diffusion.get_linear_noise_schedule(
             b_1=NOISE_SCHEDULE_VARIANCE_1,
             b_t=NOISE_SCHEDULE_VARIANCE_T,
             time_steps=NOISE_SCHEDULE_STEPS,
         )
-        self._diffuser = diffusion.Diffuser(betas)
+        diffuser = diffusion.Diffuser(betas)
+        dataset = DiffusionDataset(
+            dataset=mnist.Mnist(train=True),
+            diffuser=diffuser,
+        )
         super().__init__(
             dataset=dataset,
             model=model,
@@ -49,9 +53,8 @@ class ImageGenerator(application.Application):
         """
         Generate an image.
         """
-        image = self.dataset[0][0]
-        x, _, t = self._diffuser.forward_diffusion(image)
-        plt.imshow(x.squeeze(), cmap="gray")
+        image, t, _ = self.dataset[0]
+        plt.imshow(image.squeeze(), cmap="gray")
         plt.title(str(t.item()))
         plt.axis("off")
         plt.show()
@@ -74,6 +77,31 @@ class ImageGenerator(application.Application):
         Evaluate the model in the validation dataset.
         """
         return 0.0
+
+
+class DiffusionDataset(torchdata.Dataset):
+    """
+    Diffusion dataset wrapper.
+    """
+
+    def __init__(
+        self,
+        dataset: torchdata.Dataset,
+        diffuser: diffusion.Diffuser,
+    ):
+        self._dataset = dataset
+        self._diffuser = diffuser
+
+    def __len__(self):
+        return len(self._dataset)
+
+    def __getitem__(
+        self,
+        idx: int,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        image, _ = self._dataset[idx]
+        x, e, t = self._diffuser.forward_diffusion(image)
+        return x, t, e
 
 
 class NoisePredictor(nn.Module):
