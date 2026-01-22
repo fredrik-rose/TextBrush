@@ -53,9 +53,9 @@ class ImageGenerator(application.Application):
         """
         Generate an image.
         """
-        image, t, _ = self.dataset[0]
-        plt.imshow(image.squeeze(), cmap="gray")
-        plt.title(str(t.item()))
+        x, _ = self.dataset[0]
+        plt.imshow(x["x"].squeeze(), cmap="gray")
+        plt.title(str(x["t"].item()))
         plt.axis("off")
         plt.show()
 
@@ -98,10 +98,10 @@ class DiffusionDataset(torchdata.Dataset):
     def __getitem__(
         self,
         idx: int,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
         image, _ = self._dataset[idx]
         x, e, t = self._diffuser.forward_diffusion(image)
-        return x, t, e
+        return {"x": x, "t": t}, e
 
 
 class NoisePredictor(nn.Module):
@@ -114,5 +114,5 @@ class NoisePredictor(nn.Module):
 
         self.max_num_tokens = 0
 
-    def forward(self, x):  # pylint: disable=missing-function-docstring
+    def forward(self, x, t):  # pylint: disable=missing-function-docstring, unused-argument
         return torch.zeros_like(x)

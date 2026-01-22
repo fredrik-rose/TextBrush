@@ -11,6 +11,7 @@ import time
 
 import netron
 import torch
+import torch.utils.data as torchdata
 import torchinfo
 
 from torch import nn
@@ -216,7 +217,7 @@ def visualize_application_model(
     Visualize an application model using the Netron application.
     """
     model = application.model
-    example_input = torch.unsqueeze(application.dataset[0][0], dim=0)
+    example_input = next(iter(torchdata.DataLoader(application.dataset, batch_size=1)))[0]
 
     torchinfo.summary(model, input_data=example_input, depth=depth)
 

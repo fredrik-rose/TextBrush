@@ -29,9 +29,8 @@ def train_model(
         for x, y_true in data_loader:
             model.train()
             optimizer.zero_grad()
-            x = x.to(device)
             y_true = y_true.to(device)
-            y_pred = model(x)
+            y_pred = _model_forward(model, x, device)
             loss = loss_function(y_pred, y_true)
             loss.backward()
             optimizer.step()
@@ -57,9 +56,26 @@ def eval_model(
     total_loss = 0.0
 
     for x, y_true in data_loader:
-        x = x.to(device)
         y_true = y_true.to(device)
-        y_pred = model(x)
+        y_pred = _model_forward(model, x, device)
         total_loss += loss_function(y_pred, y_true).item()
 
     return total_loss / len(data_loader)
+
+
+def _model_forward(
+    model: nn.Module,
+    x: typing.Union[torch.Tensor, dict[str, torch.Tensor]],
+    device: str,
+) -> torch.Tensor:
+    """
+    Run the forward pass of a model.
+    """
+    if torch.is_tensor(x):  # Single-input model.
+        x = x.to(device)
+        y_pred = model(x)
+    else:  # Multi-input model.
+        assert isinstance(x, dict)
+        x = {k: v.to(device) for k, v in x.items()}
+        y_pred = model(**x)
+    return y_pred
