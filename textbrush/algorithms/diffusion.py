@@ -2,6 +2,8 @@
 Diffusion algorithm.
 """
 
+import typing
+
 import torch
 
 from torch import nn
@@ -45,17 +47,18 @@ class Diffuser(nn.Module):
         self,
         size: tuple[int],
         noise_predictor: nn.Module,
-    ) -> torch.Tensor:
+    ) -> typing.Generator[torch.Tensor, None, None]:
         """
         Sample from the diffusion process.
         """
         device = self._betas.device
         x = torch.normal(mean=0, std=1, size=size, device=device)
+        yield x
         for t in reversed(range(self._time_steps)):
             z = torch.normal(mean=0, std=1, size=size, device=device) if t > 0 else torch.zeros_like(x, device=device)
             e = noise_predictor(x, torch.tensor([t], dtype=torch.long, device=device))
             x = (self._a[t] ** -0.5) * (x - (self._betas[t] / (1 - self._a_bar[t]) ** 0.5) * e) + self._s[t] * z
-        return x
+            yield x
 
 
 def get_linear_noise_schedule(

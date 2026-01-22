@@ -21,6 +21,8 @@ NOISE_SCHEDULE_VARIANCE_1 = 10e-4
 NOISE_SCHEDULE_VARIANCE_T = 0.02
 NOISE_SCHEDULE_STEPS = 1000
 
+VISUALIZATION_STEPS = 10
+
 BATCH_SIZE = 1
 LEARNING_RATE = 3e-4
 
@@ -66,13 +68,10 @@ class ImageGenerator(application.Application):
         self.model.to(device)
         self.model.eval()
 
-        x = diffuser.reverse_diffusion(
-            size=size,
-            noise_predictor=self.model,
-        )
-        plt.imshow(x.detach().cpu().squeeze().numpy(), cmap="gray")
-        plt.axis("off")
-        plt.show()
+        with LiveImage() as live_image:
+            for i, x in enumerate(diffuser.reverse_diffusion(size=size, noise_predictor=self.model)):
+                draw = i % VISUALIZATION_STEPS == 0
+                live_image.update(x, draw=draw)
 
     def train(
         self,
@@ -153,3 +152,51 @@ class NoisePredictor(nn.Module):
 
     def forward(self, x, t):  # pylint: disable=missing-function-docstring, unused-argument
         return torch.zeros_like(x) + self.mean
+
+
+class LiveImage:
+    """
+    Live image context manager.
+    """
+
+    def __init__(self, cmap="gray"):
+        self._cmap = cmap
+        self._fig = None
+        self._ax = None
+        self._img = None
+        self._x = None
+
+    def __enter__(self):
+        plt.ion()
+
+        self._fig, self._ax = plt.subplots()
+        self._ax.axis("off")
+
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self._x is not None:
+            self.update(draw=True)
+
+        plt.ioff()
+        plt.show()
+
+    def update(self, x: torch.Tensor | None = None, draw: bool = False) -> None:
+        """
+        Update the image with an image tensor.
+        """
+        if x is not None:
+            self._x = x.detach().cpu().squeeze().numpy()
+
+        if not draw:
+            return
+
+        assert self._x is not None
+
+        if self._img is None:
+            self._img = self._ax.imshow(self._x, cmap=self._cmap)
+
+        self._img.set_data(self._x)
+        self._img.set_clim(vmin=self._x.min(), vmax=self._x.max())
+        self._fig.canvas.draw()
+        self._fig.canvas.flush_events()
