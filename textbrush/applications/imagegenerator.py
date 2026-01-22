@@ -13,12 +13,16 @@ from torch import nn
 
 from textbrush.algorithms import diffusion
 from textbrush.datasets import mnist
+from textbrush.optimizers import modeltrainer
 
 from . import application
 
 NOISE_SCHEDULE_VARIANCE_1 = 10e-4
 NOISE_SCHEDULE_VARIANCE_T = 0.02
 NOISE_SCHEDULE_STEPS = 1000
+
+BATCH_SIZE = 1
+LEARNING_RATE = 3e-4
 
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "image-generator.pth"
 
@@ -35,11 +39,13 @@ class ImageGenerator(application.Application):
             b_t=NOISE_SCHEDULE_VARIANCE_T,
             time_steps=NOISE_SCHEDULE_STEPS,
         )
-        diffuser = diffusion.Diffuser(betas)
         dataset = DiffusionDataset(
             dataset=mnist.Mnist(train=True),
-            diffuser=diffuser,
+            betas=betas,
         )
+
+        self._betas = betas
+
         super().__init__(
             dataset=dataset,
             model=model,
@@ -66,8 +72,16 @@ class ImageGenerator(application.Application):
         """
         Train the model.
         """
-        while True:
-            yield 0.0
+        data_loader = torchdata.DataLoader(self.dataset, batch_size=BATCH_SIZE, shuffle=True)
+        loss_function = nn.MSELoss(reduction="mean")
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
+        yield from modeltrainer.train_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=loss_function,
+            optimizer=optimizer,
+            device=device,
+        )
 
     def eval(
         self,
@@ -76,7 +90,20 @@ class ImageGenerator(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        return 0.0
+        full_validation_dataset = DiffusionDataset(
+            dataset=mnist.Mnist(train=False),
+            betas=self._betas,
+        )
+        validation_dataset = torchdata.Subset(full_validation_dataset, [0])  # FIXME: Remove this line.
+        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        loss_function = nn.MSELoss(reduction="mean")
+        validation_loss = modeltrainer.eval_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=loss_function,
+            device=device,
+        )
+        return validation_loss
 
 
 class DiffusionDataset(torchdata.Dataset):
@@ -87,10 +114,10 @@ class DiffusionDataset(torchdata.Dataset):
     def __init__(
         self,
         dataset: torchdata.Dataset,
-        diffuser: diffusion.Diffuser,
+        betas: list[float],
     ):
         self._dataset = dataset
-        self._diffuser = diffuser
+        self._diffuser = diffusion.Diffuser(betas)
 
     def __len__(self):
         return len(self._dataset)
@@ -113,6 +140,7 @@ class NoisePredictor(nn.Module):
         super().__init__()
 
         self.max_num_tokens = 0
+        self.mean = nn.Parameter(torch.tensor([0.0]))
 
     def forward(self, x, t):  # pylint: disable=missing-function-docstring, unused-argument
-        return torch.zeros_like(x)
+        return torch.zeros_like(x) + self.mean

@@ -39,7 +39,7 @@ class ViT(nn.Module):
 
         self.max_num_tokens = num_tokens
 
-        self._cls_token = nn.parameter.Parameter(torch.zeros(1, 1, embed_dim))  # (1, 1, D)
+        self._cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # (1, 1, D)
         self._token_embedding = VisionEmbedder(
             in_channels=channels,
             patch_size=patch_size,
