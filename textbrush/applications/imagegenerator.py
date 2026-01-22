@@ -59,9 +59,18 @@ class ImageGenerator(application.Application):
         """
         Generate an image.
         """
-        x, _ = self.dataset[0]
-        plt.imshow(x["x"].squeeze(), cmap="gray")
-        plt.title(str(x["t"].item()))
+        size = next(iter(torchdata.DataLoader(self.dataset, batch_size=1)))[0]["x"].shape
+        diffuser = diffusion.Diffuser(self._betas)
+
+        diffuser.to(device)
+        self.model.to(device)
+        self.model.eval()
+
+        x = diffuser.reverse_diffusion(
+            size=size,
+            noise_predictor=self.model,
+        )
+        plt.imshow(x.detach().cpu().squeeze().numpy(), cmap="gray")
         plt.axis("off")
         plt.show()
 
