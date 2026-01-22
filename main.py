@@ -35,7 +35,7 @@ ALL_APPLICATIONS = {
 
 ALL_BATCH_SIZES = {
     "text": textgenerator.BATCH_SIZE,
-    "image": 0,
+    "image": imagegenerator.BATCH_SIZE,
     "class": imageclassifier.BATCH_SIZE,
 }
 
