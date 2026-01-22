@@ -55,6 +55,9 @@ class ImageClassifier(application.Application):
             dropout=DROPOUT,
             attention_dropout=ATTENTION_DROPOUT,
         )
+
+        self._loss_function = nn.CrossEntropyLoss()
+
         super().__init__(
             dataset=dataset,
             model=model,
@@ -88,12 +91,11 @@ class ImageClassifier(application.Application):
         Train the model.
         """
         data_loader = torchdata.DataLoader(self.dataset, batch_size=BATCH_SIZE, shuffle=True)
-        loss_function = nn.CrossEntropyLoss()
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
         yield from modeltrainer.train_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=loss_function,
+            loss_function=self._loss_function,
             optimizer=optimizer,
             device=device,
         )
@@ -107,11 +109,10 @@ class ImageClassifier(application.Application):
         """
         validation_dataset = mnist.Mnist(train=False)
         data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        loss_function = nn.CrossEntropyLoss()
         validation_loss = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=loss_function,
+            loss_function=self._loss_function,
             device=device,
         )
         return validation_loss

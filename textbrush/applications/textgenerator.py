@@ -45,6 +45,7 @@ class TextGenerator(application.Application):
         self.tokenizer = tinyshakespeare.Tokenizer()
 
         self._split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
+        self._loss_function = FlattenedCrossEntropy()
 
         dataset = tinyshakespeare.TinyShakespeare(
             tokenizer=self.tokenizer,
@@ -60,6 +61,7 @@ class TextGenerator(application.Application):
             dropout=DROPOUT,
             attention_dropout=ATTENTION_DROPOUT,
         )
+
         super().__init__(
             dataset=dataset,
             model=model,
@@ -94,12 +96,11 @@ class TextGenerator(application.Application):
         """
         train_dataset, _ = dataset_spliter.split_ordered(self.dataset, self._split)
         data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        loss_function = FlattenedCrossEntropy()
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
         yield from modeltrainer.train_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=loss_function,
+            loss_function=self._loss_function,
             optimizer=optimizer,
             device=device,
         )
@@ -113,11 +114,10 @@ class TextGenerator(application.Application):
         """
         _, validation_dataset = dataset_spliter.split_ordered(self.dataset, self._split)
         data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        loss_function = FlattenedCrossEntropy()
         validation_loss = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=loss_function,
+            loss_function=self._loss_function,
             device=device,
         )
         return validation_loss
