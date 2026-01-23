@@ -73,6 +73,7 @@ class ImageGenerator(application.Application):
             for i, x in enumerate(diffuser.reverse_diffusion(size=size, noise_predictor=self.model)):
                 draw = i % VISUALIZATION_STEPS == 0
                 live_image.update(x, draw=draw)
+                plt.title(f"{round((i / diffuser.time_steps) * 100)} %")
 
     def train(
         self,

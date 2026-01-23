@@ -20,7 +20,7 @@ class Diffuser(nn.Module):
     ):
         super().__init__()
 
-        self._time_steps = len(betas)
+        self.time_steps = len(betas)
 
         betas_tensor = torch.tensor(betas, dtype=torch.float32)
         self.register_buffer("_betas", betas_tensor)
@@ -38,7 +38,7 @@ class Diffuser(nn.Module):
         """
         Create training samples.
         """
-        t = torch.randint(low=0, high=self._time_steps, size=(1,), device=x.device)
+        t = torch.randint(low=0, high=self.time_steps, size=(1,), device=x.device)
         e = torch.normal(mean=0, std=1, size=x.shape, device=x.device)
         x = (self._a_bar[t] ** 0.5) * x + ((1 - self._a_bar[t]) ** 0.5) * e
         return x, e, t
@@ -54,7 +54,7 @@ class Diffuser(nn.Module):
         device = self._betas.device
         x = torch.normal(mean=0, std=1, size=size, device=device)
         yield x
-        for t in reversed(range(self._time_steps)):
+        for t in reversed(range(self.time_steps)):
             z = torch.normal(mean=0, std=1, size=size, device=device) if t > 0 else torch.zeros_like(x, device=device)
             e = noise_predictor(x, torch.tensor([t], dtype=torch.long, device=device))
             x = (self._a[t] ** -0.5) * (x - (self._betas[t] / (1 - self._a_bar[t]) ** 0.5) * e) + self._s[t] * z
