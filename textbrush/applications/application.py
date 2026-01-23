@@ -61,7 +61,7 @@ class Application(abc.ABC):
     def eval(
         self,
         device: str,
-    ) -> float:
+    ) -> dict[str, float]:
         """
         Evaluate the model.
         """

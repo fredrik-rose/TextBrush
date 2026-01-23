@@ -46,21 +46,18 @@ def eval_model(
     data_loader: torchdata.DataLoader,
     loss_function: nn.Module,
     device: str,
-) -> float:
+) -> typing.Generator[tuple[torch.Tensor, torch.Tensor, torch.Tensor], None, None]:
     """
     Evaluate a model.
     """
     model.eval()
     model.to(device)
 
-    total_loss = 0.0
-
     for x, y_true in data_loader:
         y_true = y_true.to(device)
         y_pred = _model_forward(model, x, device)
-        total_loss += loss_function(y_pred, y_true).item()
-
-    return total_loss / len(data_loader)
+        loss = loss_function(y_pred, y_true)
+        yield y_true, y_pred, loss
 
 
 def _model_forward(

@@ -122,7 +122,7 @@ class ImageClassifier(application.Application):
     def eval(
         self,
         device: str,
-    ) -> float:
+    ) -> dict[str, float]:
         """
         Evaluate the model in the validation dataset.
         """
@@ -130,11 +130,29 @@ class ImageClassifier(application.Application):
             transform=self._image_transform,
             train=False,
         )
-        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        validation_loss = modeltrainer.eval_model(
+        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
+        evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
             loss_function=self._loss_function,
             device=device,
         )
-        return validation_loss
+
+        total_loss = 0.0
+        total_correct = 0.0
+        total_samples = 0
+
+        for y_true, y_pred, batch_loss in evaluator:
+            batch_size = y_true.size(0)
+            y_pred = torch.argmax(y_pred, dim=-1)
+            total_correct += (y_pred == y_true).sum().item()
+            total_samples += batch_size
+            total_loss += batch_loss.item() * batch_size
+
+        loss = total_loss / total_samples
+        accuracy = (total_correct / total_samples) * 100
+
+        return {
+            "val loss": loss,
+            "accuracy": accuracy,
+        }

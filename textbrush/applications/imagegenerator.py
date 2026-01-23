@@ -110,7 +110,7 @@ class ImageGenerator(application.Application):
     def eval(
         self,
         device: str,
-    ) -> float:
+    ) -> dict[str, float]:
         """
         Evaluate the model in the validation dataset.
         """
@@ -122,14 +122,25 @@ class ImageGenerator(application.Application):
             betas=self._betas,
         )
         validation_dataset = torchdata.Subset(full_validation_dataset, [0])  # FIXME: Remove this line.
-        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        validation_loss = modeltrainer.eval_model(
+        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
+        evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
             loss_function=self._loss_function,
             device=device,
         )
-        return validation_loss
+
+        total_loss = 0.0
+        total_samples = 0
+
+        for y_true, _, batch_loss in evaluator:
+            batch_size = y_true.size(0)
+            total_samples += batch_size
+            total_loss += batch_loss.item() * batch_size
+
+        loss = total_loss / total_samples
+
+        return {"val loss": loss}
 
 
 class DiffusionDataset(torchdata.Dataset):

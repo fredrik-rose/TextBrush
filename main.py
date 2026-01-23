@@ -173,19 +173,22 @@ def train_application_model(
     with time_it() as total_time:
         for e in range(EPOCHS):
             with time_it() as train_time:
+                # Note that this may introduce a small bias if all batches do not have the same size.
                 train_loss = sum(next(trainer) for _ in range(epoch_size)) / epoch_size
             tokens_per_sec = (epoch_size * num_tokens_in_batch) / train_time["elapsed"]
 
             with time_it() as val_time:
-                val_loss = application.eval(device)
+                metrics = application.eval(device)
+                val_loss = metrics["val loss"]
                 if val_loss < best_loss:
                     best_loss = val_loss
                     application.save()
 
+            metrics_string = " | ".join(f"{name}: {value:.4f}" for name, value in metrics.items())
             print(
                 f"{e + 1}/{EPOCHS} | "
                 f"train loss: {train_loss:.4f} | "
-                f"val loss: {val_loss:.4f} | "
+                f"{metrics_string} | "
                 f"train time: {train_time['elapsed']:.2f}s | "
                 f"val time: {val_time['elapsed']:.2f}s | "
                 f"tokens/sec: {tokens_per_sec:.2f}"

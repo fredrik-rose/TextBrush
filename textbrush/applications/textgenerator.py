@@ -2,6 +2,7 @@
 Shakespeare text generator.
 """
 
+import math
 import pathlib
 import typing
 
@@ -108,19 +109,34 @@ class TextGenerator(application.Application):
     def eval(
         self,
         device: str,
-    ) -> float:
+    ) -> dict[str, float]:
         """
         Evaluate the model in the validation dataset.
         """
         _, validation_dataset = dataset_spliter.split_ordered(self.dataset, self._split)
-        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        validation_loss = modeltrainer.eval_model(
+        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
+        evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
             loss_function=self._loss_function,
             device=device,
         )
-        return validation_loss
+
+        total_loss = 0.0
+        total_tokens = 0
+
+        for y_true, _, batch_loss in evaluator:
+            num_tokens = y_true.numel()
+            total_loss += batch_loss.item() * num_tokens
+            total_tokens += num_tokens
+
+        loss = total_loss / total_tokens
+        perplexity = math.exp(loss)
+
+        return {
+            "val loss": loss,
+            "perplexity (PPL)": perplexity,
+        }
 
 
 class FlattenedCrossEntropy(nn.Module):
