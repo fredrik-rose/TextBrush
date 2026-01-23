@@ -34,7 +34,7 @@ LEARNING_RATE = 3e-4
 
 TOP_K = 10
 
-MODEL_PATH = pathlib.Path(__file__).resolve().parent / "text-generator.pth"
+MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "text-generator.pth"
 
 
 class TextGenerator(application.Application):
