@@ -15,6 +15,7 @@ from torchvision.transforms import v2
 
 from textbrush.algorithms import diffusion
 from textbrush.datasets import mnist
+from textbrush.models import uvit
 from textbrush.optimizers import modeltrainer
 
 from . import application
@@ -37,7 +38,7 @@ class ImageGenerator(application.Application):
     """
 
     def __init__(self):
-        model = NoisePredictor()
+        model = uvit.UViT()
         betas = diffusion.get_linear_noise_schedule(
             b_1=NOISE_SCHEDULE_VARIANCE_1,
             b_t=NOISE_SCHEDULE_VARIANCE_T,
@@ -154,21 +155,6 @@ class DiffusionDataset(torchdata.Dataset):
         image, _ = self._dataset[idx]
         x, e, t = self._diffuser.forward_diffusion(image)
         return {"x": x, "t": t}, e
-
-
-class NoisePredictor(nn.Module):
-    """
-    Dummy noise predictor.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-        self.max_num_tokens = 0
-        self.mean = nn.Parameter(torch.tensor([0.0]))
-
-    def forward(self, x, t):  # pylint: disable=missing-function-docstring, unused-argument
-        return torch.zeros_like(x) + self.mean
 
 
 class LiveImage:
