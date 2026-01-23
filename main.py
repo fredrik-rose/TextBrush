@@ -5,17 +5,14 @@ The text brush entry point.
 import argparse
 import contextlib
 import datetime
-import pathlib
-import tempfile
 import time
 
-import netron
 import torch
 import torch.utils.data as torchdata
 import torchinfo
+import torchview
 
 from torch import nn
-from torch import onnx
 
 from textbrush.applications import application as app
 from textbrush.applications import imageclassifier
@@ -214,18 +211,25 @@ def visualize_application_model(
     depth: int = 7,
 ) -> None:
     """
-    Visualize an application model using the Netron application.
+    Visualize an application model.
     """
     model = application.model
     example_input = next(iter(torchdata.DataLoader(application.dataset, batch_size=1)))[0]
 
     torchinfo.summary(model, input_data=example_input, depth=depth)
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        model_path = pathlib.Path(temp_dir) / "model.onnx"
-        onnx.export(model, (example_input,), model_path, input_names=["input"], output_names=["output"])
-        netron.start(str(model_path))
-        netron.wait()
+    model_graph = torchview.draw_graph(
+        model,
+        input_size=example_input.shape,
+        depth=depth,
+        device="meta",
+    )
+    output_path = model_graph.visual_graph.render(
+        f"{application.__class__.__name__}_model",
+        format="png",
+        cleanup=True,
+    )
+    print(f"Stored model visualization at: {output_path}")
 
 
 if __name__ == "__main__":
