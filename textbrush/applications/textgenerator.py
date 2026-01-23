@@ -46,7 +46,7 @@ class TextGenerator(application.Application):
         self.tokenizer = tinyshakespeare.Tokenizer()
 
         self._split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
-        self._loss_function = FlattenedCrossEntropy()
+        self._loss_function = FlattenedCrossEntropy
 
         dataset = tinyshakespeare.TinyShakespeare(
             tokenizer=self.tokenizer,
@@ -101,7 +101,7 @@ class TextGenerator(application.Application):
         yield from modeltrainer.train_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=self._loss_function,
+            loss_function=self._loss_function(reduction="mean"),
             optimizer=optimizer,
             device=device,
         )
@@ -118,7 +118,7 @@ class TextGenerator(application.Application):
         evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=self._loss_function,
+            loss_function=self._loss_function(reduction="sum"),
             device=device,
         )
 
@@ -127,7 +127,7 @@ class TextGenerator(application.Application):
 
         for y_true, _, batch_loss in evaluator:
             num_tokens = y_true.numel()
-            total_loss += batch_loss.item() * num_tokens
+            total_loss += batch_loss.item()
             total_tokens += num_tokens
 
         loss = total_loss / total_tokens
@@ -144,10 +144,13 @@ class FlattenedCrossEntropy(nn.Module):
     Adjust dimensions to use the ordinary cross entropy loss.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        reduction: str,
+    ):
         super().__init__()
 
-        self._loss = nn.CrossEntropyLoss()
+        self._loss = nn.CrossEntropyLoss(reduction=reduction)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,

@@ -68,7 +68,7 @@ class ImageClassifier(application.Application):
         )
 
         self._image_transform = image_transform
-        self._loss_function = nn.CrossEntropyLoss()
+        self._loss_function = nn.CrossEntropyLoss
 
         super().__init__(
             dataset=dataset,
@@ -114,7 +114,7 @@ class ImageClassifier(application.Application):
         yield from modeltrainer.train_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=self._loss_function,
+            loss_function=self._loss_function(reduction="mean"),
             optimizer=optimizer,
             device=device,
         )
@@ -134,7 +134,7 @@ class ImageClassifier(application.Application):
         evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=self._loss_function,
+            loss_function=self._loss_function(reduction="sum"),
             device=device,
         )
 
@@ -147,7 +147,7 @@ class ImageClassifier(application.Application):
             y_pred = torch.argmax(y_pred, dim=-1)
             total_correct += (y_pred == y_true).sum().item()
             total_samples += batch_size
-            total_loss += batch_loss.item() * batch_size
+            total_loss += batch_loss.item()
 
         loss = total_loss / total_samples
         accuracy = (total_correct / total_samples) * 100

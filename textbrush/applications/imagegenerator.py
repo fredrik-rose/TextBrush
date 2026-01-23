@@ -61,7 +61,7 @@ class ImageGenerator(application.Application):
 
         self._betas = betas
         self._image_transform = image_transform
-        self._loss_function = nn.MSELoss(reduction="mean")
+        self._loss_function = nn.MSELoss
 
         super().__init__(
             dataset=dataset,
@@ -102,7 +102,7 @@ class ImageGenerator(application.Application):
         yield from modeltrainer.train_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=self._loss_function,
+            loss_function=self._loss_function(reduction="mean"),
             optimizer=optimizer,
             device=device,
         )
@@ -126,7 +126,7 @@ class ImageGenerator(application.Application):
         evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
-            loss_function=self._loss_function,
+            loss_function=self._loss_function(reduction="sum"),
             device=device,
         )
 
@@ -136,7 +136,7 @@ class ImageGenerator(application.Application):
         for y_true, _, batch_loss in evaluator:
             batch_size = y_true.size(0)
             total_samples += batch_size
-            total_loss += batch_loss.item() * batch_size
+            total_loss += batch_loss.item()
 
         loss = total_loss / total_samples
 
