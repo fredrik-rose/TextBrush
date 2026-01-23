@@ -6,6 +6,8 @@ learning architectures and algorithms like large language model (LLM), generativ
 vision transformer (ViT), diffusion and contrastive learning. This project is partly inspired by the work of Andrej
 Karpathy.
 
+<img src="Images/text_generator.gif" height="600"/>
+
 ## Usage
 
 This chapter contains example commands.
