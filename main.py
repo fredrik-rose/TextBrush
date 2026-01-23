@@ -145,7 +145,7 @@ def parse() -> argparse.Namespace:
 
 def get_device() -> str:
     """
-    get the "best" available device.
+    Get the "best" available device.
     """
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     return device
