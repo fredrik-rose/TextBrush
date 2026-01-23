@@ -3,13 +3,12 @@ The MNIST (Modified National Institute of Standards and Technology) dataset.
 """
 
 import pathlib
+import typing
 
 import numpy as np
 import torch
 import torch.utils.data as torchdata
 import torchvision
-
-from torchvision.transforms import v2
 
 MEAN = 0.1307
 STD = 0.3081
@@ -24,18 +23,13 @@ class Mnist(torchdata.Dataset):
 
     def __init__(
         self,
+        transform: typing.Callable,
         train: bool,
     ):
         self._dataset = torchvision.datasets.MNIST(
             root=DATASET_PATH,
             train=train,
-            transform=v2.Compose(
-                [
-                    v2.ToImage(),
-                    v2.ToDtype(torch.float32, scale=True),
-                    v2.Normalize(mean=(MEAN,), std=(STD,)),
-                ]
-            ),
+            transform=transform,
             download=True,
         )
 
@@ -49,12 +43,11 @@ class Mnist(torchdata.Dataset):
         return self._dataset[idx]
 
 
-def to_image(tensor: torch.Tensor) -> np.ndarray:
+def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
     """
     Convert a MNIST image tensor to Numpy image.
     """
-    image = tensor.squeeze().numpy()
-    image = denormalize(image)
+    image = tensor.detach().cpu().squeeze().numpy()
     return image
 
 

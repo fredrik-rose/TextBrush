@@ -6,10 +6,12 @@ import pathlib
 import typing
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.utils.data as torchdata
 
 from torch import nn
+from torchvision.transforms import v2
 
 from textbrush.algorithms import diffusion
 from textbrush.datasets import mnist
@@ -41,12 +43,23 @@ class ImageGenerator(application.Application):
             b_t=NOISE_SCHEDULE_VARIANCE_T,
             time_steps=NOISE_SCHEDULE_STEPS,
         )
+        image_transform = v2.Compose(
+            [
+                v2.ToImage(),  # [0, 255]
+                v2.ToDtype(torch.float32, scale=True),  # [0, 1]
+                v2.Lambda(lambda x: x * 2 - 1),  # [-1, 1]
+            ]
+        )
         dataset = DiffusionDataset(
-            dataset=mnist.Mnist(train=True),
+            dataset=mnist.Mnist(
+                transform=image_transform,
+                train=True,
+            ),
             betas=betas,
         )
 
         self._betas = betas
+        self._image_transform = image_transform
         self._loss_function = nn.MSELoss(reduction="mean")
 
         super().__init__(
@@ -72,7 +85,8 @@ class ImageGenerator(application.Application):
         with LiveImage() as live_image:
             for i, x in enumerate(diffuser.reverse_diffusion(size=size, noise_predictor=self.model)):
                 draw = i % VISUALIZATION_STEPS == 0
-                live_image.update(x, draw=draw)
+                image = diffusion_denormalize(mnist.tensor_to_image(x))
+                live_image.update(image, draw=draw)
                 plt.title(f"{round((i / diffuser.time_steps) * 100)} %")
 
     def train(
@@ -100,7 +114,10 @@ class ImageGenerator(application.Application):
         Evaluate the model in the validation dataset.
         """
         full_validation_dataset = DiffusionDataset(
-            dataset=mnist.Mnist(train=False),
+            dataset=mnist.Mnist(
+                transform=self._image_transform,
+                train=False,
+            ),
             betas=self._betas,
         )
         validation_dataset = torchdata.Subset(full_validation_dataset, [0])  # FIXME: Remove this line.
@@ -159,7 +176,10 @@ class LiveImage:
     Live image context manager.
     """
 
-    def __init__(self, cmap="gray"):
+    def __init__(
+        self,
+        cmap="gray",
+    ):
         self._cmap = cmap
         self._fig = None
         self._ax = None
@@ -181,12 +201,16 @@ class LiveImage:
         plt.ioff()
         plt.show()
 
-    def update(self, x: torch.Tensor | None = None, draw: bool = False) -> None:
+    def update(
+        self,
+        x: np.ndarray | None = None,
+        draw: bool = False,
+    ) -> None:
         """
         Update the image with an image tensor.
         """
         if x is not None:
-            self._x = x.detach().cpu().squeeze().numpy()
+            self._x = x
 
         if not draw:
             return
@@ -200,3 +224,12 @@ class LiveImage:
         self._img.set_clim(vmin=self._x.min(), vmax=self._x.max())
         self._fig.canvas.draw()
         self._fig.canvas.flush_events()
+
+
+def diffusion_denormalize(image: np.ndarray) -> np.ndarray:
+    """
+    De-normalize an image generated via diffusion.
+    """
+    image = (image + 1) / 2
+    image = np.clip(image, 0, 1)
+    return image

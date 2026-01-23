@@ -10,6 +10,7 @@ import torch
 import torch.utils.data as torchdata
 
 from torch import nn
+from torchvision.transforms import v2
 
 from textbrush.datasets import mnist
 from textbrush.models import vit
@@ -40,7 +41,17 @@ class ImageClassifier(application.Application):
     """
 
     def __init__(self):
-        dataset = mnist.Mnist(train=True)
+        image_transform = v2.Compose(
+            [
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize(mean=(mnist.MEAN,), std=(mnist.STD,)),
+            ]
+        )
+        dataset = mnist.Mnist(
+            transform=image_transform,
+            train=True,
+        )
         channels, height, width = dataset[0][0].shape
         model = vit.ViT(
             num_classes=NUM_CLASSES,
@@ -56,6 +67,7 @@ class ImageClassifier(application.Application):
             attention_dropout=ATTENTION_DROPOUT,
         )
 
+        self._image_transform = image_transform
         self._loss_function = nn.CrossEntropyLoss()
 
         super().__init__(
@@ -72,12 +84,19 @@ class ImageClassifier(application.Application):
         """
         Classify images.
         """
-        data_loader = torchdata.DataLoader(mnist.Mnist(train=False), batch_size=1, shuffle=True)
+        data_loader = torchdata.DataLoader(
+            mnist.Mnist(
+                transform=self._image_transform,
+                train=False,
+            ),
+            batch_size=1,
+            shuffle=True,
+        )
         for i, (image_tensor, true_label) in enumerate(data_loader):
             if i >= num_images:
                 break
             pred_label = self.model.classify(image_tensor[0], device=device)
-            image = mnist.to_image(image_tensor)
+            image = mnist.denormalize(mnist.tensor_to_image(image_tensor))
             plt.imshow(image, cmap="gray")
             plt.title(f"True: {true_label[0]}, Predicted: {pred_label}")
             plt.axis("off")
@@ -107,7 +126,10 @@ class ImageClassifier(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        validation_dataset = mnist.Mnist(train=False)
+        validation_dataset = mnist.Mnist(
+            transform=self._image_transform,
+            train=False,
+        )
         data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=True)
         validation_loss = modeltrainer.eval_model(
             model=self.model,
