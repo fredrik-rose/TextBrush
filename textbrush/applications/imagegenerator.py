@@ -79,16 +79,17 @@ class ImageGenerator(application.Application):
         size = next(iter(torchdata.DataLoader(self.dataset, batch_size=1)))[0]["x"].shape
         diffuser = diffusion.Diffuser(self._betas)
 
-        diffuser.to(device)
-        self.model.to(device)
-        self.model.eval()
+        with torch.no_grad():
+            diffuser.to(device)
+            self.model.to(device)
+            self.model.eval()
 
-        with LiveImage() as live_image:
-            for i, x in enumerate(diffuser.reverse_diffusion(size=size, noise_predictor=self.model)):
-                draw = i % VISUALIZATION_STEPS == 0
-                image = diffusion_denormalize(mnist.tensor_to_image(x))
-                live_image.update(image, draw=draw)
-                plt.title(f"{round((i / diffuser.time_steps) * 100)} %")
+            with LiveImage() as live_image:
+                for i, x in enumerate(diffuser.reverse_diffusion(size=size, noise_predictor=self.model)):
+                    draw = i % VISUALIZATION_STEPS == 0
+                    image = diffusion_denormalize(mnist.tensor_to_image(x))
+                    live_image.update(image, draw=draw)
+                    plt.title(f"{round((i / diffuser.time_steps) * 100)} %")
 
     def train(
         self,

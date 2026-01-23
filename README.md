@@ -292,7 +292,8 @@ properly.
 
 Do not forget to zero the gradients for each step in the training `optimizer.zero_grad()`. It is also important to have
 the model in the correct mode, `model.train()` when doing training and `model.eval()` for almost all other use cases,
-e.g. inference.
+e.g. inference. Another thing to remember is to use `torch.no_grad()` when gradients are not needed, e.g. during
+evaluation and inference.
 
 Training loop functions often becomes very bloated with a huge parameter list. A neat approach is to implement the
 training loop as a generator and only keeping the absolute minimum in this generator. This can then easily be extended
