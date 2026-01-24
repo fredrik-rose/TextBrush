@@ -7,6 +7,7 @@ ignore_missing_imports = true
 [tool.pylint.main]
 max-line-length = 120
 max-args = 15
+max-attributes = 10
 disable = [
     "bad-inline-option",
     "deprecated-pragma",

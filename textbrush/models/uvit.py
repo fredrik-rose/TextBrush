@@ -6,6 +6,7 @@ import torch
 
 from torch import nn
 
+from . import transformer
 from . import vit
 
 
@@ -47,7 +48,14 @@ class UViT(nn.Module):
             time_steps=time_steps,
             embed_dim=embed_dim,
         )
+        self._pos_encoder = transformer.PositionalEncoder(
+            num_tokens=num_tokens,
+            embed_dim=embed_dim,
+        )
         self._dropout = nn.Dropout(dropout)
+        self._norm = transformer.LayerNorm(
+            embed_dim=embed_dim,
+        )
         self._image_unembedder = VisionUnembedder(
             embed_dim=embed_dim,
             channels=channels,
@@ -79,7 +87,9 @@ class UViT(nn.Module):
         image_tokens = self._image_embedder(x)  # (B, I, H, W) -> (B, T, D)
         time_tokens = self._time_embedder(t)  # (B, 1) -> (B, 1, D)
         tokens = torch.cat([time_tokens, image_tokens], dim=-2)  # (B, T, D) -> (B, T+1, D)
+        tokens = self._pos_encoder(tokens)
         tokens = self._dropout(tokens)
+        tokens = self._norm(tokens)
         noise = self._image_unembedder(tokens[:, -self._num_image_tokens : :])  # (B, T, D) -> (B, I, H, W)
         noise = self._conv(noise)  # (B, I, H, W)
         return noise
