@@ -24,6 +24,7 @@ class UViT(nn.Module):
         patch_size: int,
         time_steps: int,
         embed_dim: int,
+        dropout: float = 0.0,
     ):
         super().__init__()
 
@@ -46,6 +47,7 @@ class UViT(nn.Module):
             time_steps=time_steps,
             embed_dim=embed_dim,
         )
+        self._dropout = nn.Dropout(dropout)
         self._image_unembedder = VisionUnembedder(
             embed_dim=embed_dim,
             channels=channels,
@@ -62,6 +64,13 @@ class UViT(nn.Module):
             bias=True,
         )
 
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        nn.init.zeros_(self._conv.weight)
+        if self._conv.bias is not None:
+            nn.init.zeros_(self._conv.bias)
+
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
@@ -70,6 +79,7 @@ class UViT(nn.Module):
         image_tokens = self._image_embedder(x)  # (B, I, H, W) -> (B, T, D)
         time_tokens = self._time_embedder(t)  # (B, 1) -> (B, 1, D)
         tokens = torch.cat([time_tokens, image_tokens], dim=-2)  # (B, T, D) -> (B, T+1, D)
+        tokens = self._dropout(tokens)
         noise = self._image_unembedder(tokens[:, -self._num_image_tokens : :])  # (B, T, D) -> (B, I, H, W)
         noise = self._conv(noise)  # (B, I, H, W)
         return noise
@@ -91,6 +101,11 @@ class TimeEmbedder(nn.Module):
             num_embeddings=time_steps,
             embedding_dim=embed_dim,
         )
+
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        nn.init.normal_(self._time_embed.weight, mean=0.0, std=0.02)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
@@ -123,6 +138,12 @@ class VisionUnembedder(nn.Module):
             in_features=embed_dim,
             out_features=channels * patch_size * patch_size,
         )
+
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
+        nn.init.normal_(self._linear.weight, mean=0.0, std=0.02)
+        nn.init.zeros_(self._linear.bias)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,

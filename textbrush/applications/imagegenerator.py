@@ -27,6 +27,8 @@ NOISE_SCHEDULE_STEPS = 1000
 PATCH_SIZE = 4
 EMBEDDED_DIMENSION = 256
 
+DROPOUT = 0.2
+
 BATCH_SIZE = 128
 LEARNING_RATE = 3e-4
 
@@ -68,6 +70,7 @@ class ImageGenerator(application.Application):
             patch_size=PATCH_SIZE,
             time_steps=NOISE_SCHEDULE_STEPS,
             embed_dim=EMBEDDED_DIMENSION,
+            dropout=DROPOUT,
         )
 
         self._betas = betas
