@@ -25,9 +25,13 @@ NOISE_SCHEDULE_VARIANCE_T = 0.02
 NOISE_SCHEDULE_STEPS = 1000
 
 PATCH_SIZE = 4
+NUM_LAYERS = 5
+NUM_HEADS = 4
 EMBEDDED_DIMENSION = 256
+FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
 
 DROPOUT = 0.2
+ATTENTION_DROPOUT = DROPOUT
 
 BATCH_SIZE = 128
 LEARNING_RATE = 3e-4
@@ -69,8 +73,12 @@ class ImageGenerator(application.Application):
             width=width,
             patch_size=PATCH_SIZE,
             time_steps=NOISE_SCHEDULE_STEPS,
+            num_layers=NUM_LAYERS,
+            num_heads=NUM_HEADS,
             embed_dim=EMBEDDED_DIMENSION,
+            feed_forward_dim=FEED_FORWARD_DIMENSION,
             dropout=DROPOUT,
+            attention_dropout=ATTENTION_DROPOUT,
         )
 
         self._betas = betas

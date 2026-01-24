@@ -313,6 +313,7 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT): https://arxiv.org/abs/2010.11929
 - Language Models are Few-Shot Learners (GPT): https://arxiv.org/abs/2005.14165
 - Denoising Diffusion Probabilistic Models (DDPM) https://arxiv.org/abs/2006.11239
+- All are Worth Words: A ViT Backbone for Diffusion Models (U-ViT): https://arxiv.org/abs/2209.12152
 - Deep Residual Learning for Image Recognition (ResNet): https://arxiv.org/abs/1512.03385
 - Gaussian Error Linear Units (GELUs): https://arxiv.org/abs/1606.08415
 - Layer Normalization: https://arxiv.org/abs/1607.06450
