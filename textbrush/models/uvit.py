@@ -6,21 +6,138 @@ import torch
 
 from torch import nn
 
+from . import vit
+
 
 class UViT(nn.Module):
     """
     U-Net Vision Transformer.
+
+    Useful as noise predictor in a diffusion process.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        channels: int,
+        height: int,
+        width: int,
+        patch_size: int,
+        time_steps: int,
+        embed_dim: int,
+    ):
         super().__init__()
 
-        self.max_num_tokens = 0
-        self.mean = nn.Parameter(torch.tensor([0.0]))
+        assert height % patch_size == 0
+        assert width % patch_size == 0
+
+        height_patches = height // patch_size
+        width_patches = width // patch_size
+        num_image_tokens = height_patches * width_patches
+        num_tokens = num_image_tokens + 1
+
+        self.max_num_tokens = num_tokens
+        self._num_image_tokens = num_image_tokens
+        self._image_embedder = vit.VisionEmbedder(
+            in_channels=channels,
+            patch_size=patch_size,
+            embed_dim=embed_dim,
+        )
+        self._time_embedder = TimeEmbedder(
+            time_steps=time_steps,
+            embed_dim=embed_dim,
+        )
+        self._image_unembedder = VisionUnembedder(
+            embed_dim=embed_dim,
+            channels=channels,
+            height_patches=height_patches,
+            width_patches=width_patches,
+            patch_size=patch_size,
+        )
+        self._conv = nn.Conv2d(
+            in_channels=channels,
+            out_channels=channels,
+            kernel_size=3,
+            stride=1,
+            padding="same",
+            bias=True,
+        )
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
-        t: torch.Tensor,  # pylint: disable=unused-argument
+        t: torch.Tensor,
     ) -> torch.Tensor:
-        return torch.zeros_like(x) + self.mean
+        image_tokens = self._image_embedder(x)  # (B, I, H, W) -> (B, T, D)
+        time_tokens = self._time_embedder(t)  # (B, 1) -> (B, 1, D)
+        tokens = torch.cat([time_tokens, image_tokens], dim=-2)  # (B, T, D) -> (B, T+1, D)
+        noise = self._image_unembedder(tokens[:, -self._num_image_tokens : :])  # (B, T, D) -> (B, I, H, W)
+        noise = self._conv(noise)  # (B, I, H, W)
+        return noise
+
+
+class TimeEmbedder(nn.Module):
+    """
+    Create embeddings for diffusion time steps.
+    """
+
+    def __init__(
+        self,
+        time_steps: int,
+        embed_dim: int,
+    ):
+        super().__init__()
+
+        self._time_embed = nn.Embedding(
+            num_embeddings=time_steps,
+            embedding_dim=embed_dim,
+        )
+
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
+        x = self._time_embed(x)  # (B, 1) -> (B, 1, D)
+        return x
+
+
+class VisionUnembedder(nn.Module):
+    """
+    Creates an image from tokens that where initially extracted from an image.
+    """
+
+    def __init__(
+        self,
+        embed_dim: int,
+        channels: int,
+        height_patches: int,
+        width_patches: int,
+        patch_size: int,
+    ):
+        super().__init__()
+
+        self._c = channels
+        self._h_p = height_patches
+        self._w_p = width_patches
+        self._p_s = patch_size
+        self._linear = nn.Linear(
+            in_features=embed_dim,
+            out_features=channels * patch_size * patch_size,
+        )
+
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        x: torch.Tensor,
+    ) -> torch.Tensor:
+        # Assumes IPP (channel, patch_size, patch_size) order in embedding layer (this is true when
+        # using the convolution approach).
+        x = self._linear(x)  # (B, T, D) -> (B, T, I*P*P)
+        # Alt: einops.rearrange(x, "b (hp wp) (i p p) -> b i (hp p) (wp p)", hp=h_p, wp=w_p, p=p_s, i=c)
+        x = x.view(  # (B, T, I*P*P) -> (B, Hp, Wp, I, P, P), T = Hp*Wp
+            (x.size(0), self._h_p, self._w_p, self._c, self._p_s, self._p_s),
+        )
+        x = torch.permute(x, (0, 3, 1, 4, 2, 5))  # (B, Hp, Wp, I, P, P) -> (B, I, Hp, P, Wp, P)
+        x = torch.reshape(  # (B, I, Hp, P, Wp, P) -> (B, I, H, W), H = Hp*P, W = Wp*P
+            x,
+            (x.size(0), x.size(1), self._h_p * self._p_s, self._w_p * self._p_s),
+        )
+        return x

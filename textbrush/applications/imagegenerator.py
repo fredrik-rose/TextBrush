@@ -24,10 +24,13 @@ NOISE_SCHEDULE_VARIANCE_1 = 10e-4
 NOISE_SCHEDULE_VARIANCE_T = 0.02
 NOISE_SCHEDULE_STEPS = 1000
 
-VISUALIZATION_STEPS = 10
+PATCH_SIZE = 4
+EMBEDDED_DIMENSION = 256
 
-BATCH_SIZE = 1
+BATCH_SIZE = 128
 LEARNING_RATE = 3e-4
+
+VISUALIZATION_STEPS = 10
 
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "image-generator.pth"
 
@@ -38,7 +41,6 @@ class ImageGenerator(application.Application):
     """
 
     def __init__(self):
-        model = uvit.UViT()
         betas = diffusion.get_linear_noise_schedule(
             b_1=NOISE_SCHEDULE_VARIANCE_1,
             b_t=NOISE_SCHEDULE_VARIANCE_T,
@@ -57,6 +59,15 @@ class ImageGenerator(application.Application):
                 train=True,
             ),
             betas=betas,
+        )
+        channels, height, width = dataset[0][0]["x"].shape
+        model = uvit.UViT(
+            channels=channels,
+            height=height,
+            width=width,
+            patch_size=PATCH_SIZE,
+            time_steps=NOISE_SCHEDULE_STEPS,
+            embed_dim=EMBEDDED_DIMENSION,
         )
 
         self._betas = betas
@@ -115,14 +126,13 @@ class ImageGenerator(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        full_validation_dataset = DiffusionDataset(
+        validation_dataset = DiffusionDataset(
             dataset=mnist.Mnist(
                 transform=self._image_transform,
                 train=False,
             ),
             betas=self._betas,
         )
-        validation_dataset = torchdata.Subset(full_validation_dataset, [0])  # FIXME: Remove this line.
         data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
         evaluator = modeltrainer.eval_model(
             model=self.model,
@@ -132,14 +142,14 @@ class ImageGenerator(application.Application):
         )
 
         total_loss = 0.0
-        total_samples = 0
+        total_pixels = 0
 
         for y_true, _, batch_loss in evaluator:
-            batch_size = y_true.size(0)
-            total_samples += batch_size
+            batch_size = y_true.numel()
+            total_pixels += batch_size
             total_loss += batch_loss.item()
 
-        loss = total_loss / total_samples
+        loss = total_loss / total_pixels
 
         return {"val loss": loss}
 
