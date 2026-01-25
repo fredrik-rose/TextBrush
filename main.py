@@ -240,7 +240,7 @@ def visualize_application_model(
 
     model_graph = torchview.draw_graph(
         model,
-        input_size=example_input.shape,
+        input_data=example_input,
         depth=depth,
         device="meta",
     )
