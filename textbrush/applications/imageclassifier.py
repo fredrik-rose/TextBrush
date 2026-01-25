@@ -31,6 +31,7 @@ ATTENTION_DROPOUT = DROPOUT
 
 BATCH_SIZE = 128
 LEARNING_RATE = 3e-4
+TRAINING_ITERATIONS = 5000
 
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "image-classifier.pth"
 

@@ -19,15 +19,21 @@ from textbrush.applications import imageclassifier
 from textbrush.applications import imagegenerator
 from textbrush.applications import textgenerator
 
-TRAINING_ITERATIONS = 5000
 EPOCHS = 10
 DEFAULT_TEXT_GENERATION_LENGTH = 1000
+DEFAULT_DIGIT = 2
 DEFAULT_NUM_IMAGES = 5
 
 ALL_APPLICATIONS = {
     "text": textgenerator.TextGenerator(),
     "image": imagegenerator.ImageGenerator(),
     "class": imageclassifier.ImageClassifier(),
+}
+
+ALL_TRAINING_ITERATIONS = {
+    "text": textgenerator.TRAINING_ITERATIONS,
+    "image": imagegenerator.TRAINING_ITERATIONS,
+    "class": imageclassifier.TRAINING_ITERATIONS,
 }
 
 ALL_BATCH_SIZES = {
@@ -65,8 +71,9 @@ def main() -> None:
     application = ALL_APPLICATIONS[args.application]
 
     if args.train:
+        training_iterations = ALL_TRAINING_ITERATIONS[args.application]
         num_tokens_in_batch = ALL_BATCH_SIZES[args.application] * application.model.max_num_tokens
-        train_application_model(application, num_tokens_in_batch, device)
+        train_application_model(application, training_iterations, num_tokens_in_batch, device)
         return
 
     try:
@@ -137,7 +144,7 @@ def parse() -> argparse.Namespace:
         choices=range(10),
         metavar="[0-9]",
         help="digit to generate",
-        default=2,
+        default=DEFAULT_DIGIT,
     )
 
     image_classifier_parser = subparsers.add_parser("class", help="Hand-written digit classifier")
@@ -162,13 +169,14 @@ def get_device() -> str:
 
 def train_application_model(
     application: app.Application,
+    iterations: int,
     num_tokens_in_batch: int,
     device: str,
 ) -> None:
     """
     Train an application.
     """
-    epoch_size = TRAINING_ITERATIONS // EPOCHS
+    epoch_size = iterations // EPOCHS
     trainer = application.train(device)
     best_loss = float("inf")
 
@@ -176,7 +184,7 @@ def train_application_model(
         f"\nStarting training | "
         f"Device: {device} |"
         f" #Params: {get_num_parameters(application.model) / 1e6:.2f}M | "
-        f"Iterations: {TRAINING_ITERATIONS}"
+        f"Iterations: {iterations}"
     )
 
     with time_it() as total_time:
