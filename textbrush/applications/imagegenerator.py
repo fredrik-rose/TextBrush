@@ -24,13 +24,15 @@ NOISE_SCHEDULE_VARIANCE_1 = 10e-4
 NOISE_SCHEDULE_VARIANCE_T = 0.02
 NOISE_SCHEDULE_STEPS = 1000
 
+NUM_CLASSES = 10
+
 PATCH_SIZE = 4
-NUM_LAYERS = 5
-NUM_HEADS = 4
+NUM_LAYERS = 9
+NUM_HEADS = 8
 EMBEDDED_DIMENSION = 256
 FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
 
-DROPOUT = 0.2
+DROPOUT = 0.1
 ATTENTION_DROPOUT = DROPOUT
 
 BATCH_SIZE = 128
@@ -73,6 +75,7 @@ class ImageGenerator(application.Application):
             width=width,
             patch_size=PATCH_SIZE,
             time_steps=NOISE_SCHEDULE_STEPS,
+            num_conditions=NUM_CLASSES,
             num_layers=NUM_LAYERS,
             num_heads=NUM_HEADS,
             embed_dim=EMBEDDED_DIMENSION,
@@ -93,6 +96,7 @@ class ImageGenerator(application.Application):
 
     def __call__(
         self,
+        digit: int,
         device: str = "cpu",
     ) -> None:
         """
@@ -107,7 +111,8 @@ class ImageGenerator(application.Application):
             self.model.eval()
 
             with LiveImage() as live_image:
-                for i, x in enumerate(diffuser.reverse_diffusion(size=size, noise_predictor=self.model)):
+                reverse = diffuser.reverse_diffusion(size=size, condition=digit, noise_predictor=self.model)
+                for i, x in enumerate(reverse):
                     draw = i % VISUALIZATION_STEPS == 0
                     image = diffusion_denormalize(mnist.tensor_to_image(x))
                     live_image.update(image, draw=draw)
@@ -185,9 +190,10 @@ class DiffusionDataset(torchdata.Dataset):
         self,
         idx: int,
     ) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
-        image, _ = self._dataset[idx]
+        image, label = self._dataset[idx]
+        c = torch.tensor([label], dtype=torch.long)
         x, e, t = self._diffuser.forward_diffusion(image)
-        return {"x": x, "t": t}, e
+        return {"x": x, "t": t, "c": c}, e
 
 
 class LiveImage:

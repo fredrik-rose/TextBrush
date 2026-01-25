@@ -85,7 +85,7 @@ def main() -> None:
             for char in application(prompt=prompt, length=args.n, device=device):  # type: ignore[operator]
                 print(char, end="", flush=True)
         case "image":
-            application(device=device)  # type: ignore[operator]
+            application(digit=args.digit, device=device)  # type: ignore[operator]
         case "class":
             application(num_images=args.n, device=device)  # type: ignore[operator]
         case _:
@@ -129,7 +129,16 @@ def parse() -> argparse.Namespace:
         default=DEFAULT_TEXT_GENERATION_LENGTH,
     )
 
-    subparsers.add_parser("image", help="Hand-written digit image generator")
+    image_generator_parser = subparsers.add_parser("image", help="Hand-written digit image generator")
+    image_generator_parser.add_argument(
+        "-d",
+        "--digit",
+        type=int,
+        choices=range(10),
+        metavar="[0-9]",
+        help="digit to generate",
+        default=2,
+    )
 
     image_classifier_parser = subparsers.add_parser("class", help="Hand-written digit classifier")
     image_classifier_parser.add_argument(

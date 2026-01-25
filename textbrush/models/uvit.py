@@ -24,6 +24,7 @@ class UViT(nn.Module):
         width: int,
         patch_size: int,
         time_steps: int,
+        num_conditions: int,
         num_layers: int,
         num_heads: int,
         embed_dim: int,
@@ -39,7 +40,7 @@ class UViT(nn.Module):
         height_patches = height // patch_size
         width_patches = width // patch_size
         num_image_tokens = height_patches * width_patches
-        num_tokens = num_image_tokens + 1
+        num_tokens = num_image_tokens + 2
 
         self.max_num_tokens = num_tokens
         self._num_image_tokens = num_image_tokens
@@ -48,15 +49,18 @@ class UViT(nn.Module):
             patch_size=patch_size,
             embed_dim=embed_dim,
         )
-        self._time_embedder = TimeEmbedder(
-            time_steps=time_steps,
+        self._time_embedder = InputEmbedder(
+            num_inputs=time_steps,
+            embed_dim=embed_dim,
+        )
+        self._cond_embedder = InputEmbedder(
+            num_inputs=num_conditions,
             embed_dim=embed_dim,
         )
         self._pos_encoder = transformer.PositionalEncoder(
             num_tokens=num_tokens,
             embed_dim=embed_dim,
         )
-        self._dropout = nn.Dropout(dropout)
         self._unet = UNet(
             num_layers=num_layers,
             embed_dim=embed_dim,
@@ -85,53 +89,52 @@ class UViT(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.zeros_(self._conv.weight)
-        if self._conv.bias is not None:
-            nn.init.zeros_(self._conv.bias)
+        transformer.init_xavier_uniform(self._conv)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
         t: torch.Tensor,
+        c: torch.Tensor,
     ) -> torch.Tensor:
         image_tokens = self._image_embedder(x)  # (B, I, H, W) -> (B, T, D)
         time_tokens = self._time_embedder(t)  # (B, 1) -> (B, 1, D)
-        tokens = torch.cat([time_tokens, image_tokens], dim=-2)  # (B, T, D) -> (B, T+1, D)
+        cond_token = self._cond_embedder(c)
+        tokens = torch.cat([time_tokens, cond_token, image_tokens], dim=-2)  # (B, T, D) -> (B, T+2, D)
         tokens = self._pos_encoder(tokens)  # (B, T, D)
-        tokens = self._dropout(tokens)  # (B, T, D)
         tokens = self._unet(tokens)  # (B, T, D)
         noise = self._image_unembedder(tokens[:, -self._num_image_tokens : :])  # (B, T, D) -> (B, I, H, W)
         noise = self._conv(noise)  # (B, I, H, W)
         return noise
 
 
-class TimeEmbedder(nn.Module):
+class InputEmbedder(nn.Module):
     """
-    Create embeddings for diffusion time steps.
+    Create embeddings for diffusion time steps and conditions.
     """
 
     def __init__(
         self,
-        time_steps: int,
+        num_inputs: int,
         embed_dim: int,
     ):
         super().__init__()
 
-        self._time_embed = nn.Embedding(
-            num_embeddings=time_steps,
+        self._embed = nn.Embedding(
+            num_embeddings=num_inputs,
             embedding_dim=embed_dim,
         )
 
         self.reset_parameters()
 
     def reset_parameters(self) -> None:  # pylint: disable=missing-function-docstring
-        nn.init.normal_(self._time_embed.weight, mean=0.0, std=0.02)
+        nn.init.normal_(self._embed.weight, mean=0.0, std=0.02)
 
     def forward(  # pylint: disable=missing-function-docstring
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-        x = self._time_embed(x)  # (B, 1) -> (B, 1, D)
+        x = self._embed(x)  # (B, 1) -> (B, 1, D)
         return x
 
 
