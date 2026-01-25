@@ -1,5 +1,7 @@
 # Text Brush
 
+<img src="Images/image_generator.gif" height="200"/>
+
 A project that implements generative machine learning models for text and images. The focus is on handwritten digits
 and the core architectural component is the Transformer. The purpose is to implement important and impact-full machine
 learning architectures and algorithms like large language model (LLM), generative pre-trained transformer (GPT),
@@ -33,6 +35,13 @@ watch -n 1 nvidia-smi
 To generate text (1000 characters with prompt "QUEEN") run:
 ```
 python main.py text -p "QUEEN" -n 1000
+```
+
+### Generate Images
+
+To generate images (digit 5) run:
+```
+python main.py image -d 5
 ```
 
 ### Classify Images
