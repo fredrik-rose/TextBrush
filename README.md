@@ -214,6 +214,25 @@ to convert from the embedding dimension to the size of the vocabulary to get log
 probabilities for each next word. Typically only one of the tokens is used in the head, in language models only the
 last token is used and in classifiers only the CLS token (typically first) is used.
 
+## U-net
+
+The U-net architecture consist of an encoder, a bottleneck and a decoder. It has long skip connections between
+corresponding blocks in the encoder and decoder, the last decoder block is connected to the first encoder block,
+the second last to the second, etc. The encoder typically reduces spacial resolution and increases the number of
+channels while the decoder does the reverses of this. The integration of decoder and encoder `C` varies between
+architectures, but common approaches are concatenation or addition. The bottleneck process the most condensed data.
+This is a useful architecture for applications that process images and the input dimension should match the output
+dimension, e.g. semantic image segmentation.
+
+![Unet](Images/unet.png)
+
+### Transformer U-net
+
+The transformer U-net uses transformer blocks for all parts (encoder, bottleneck and decoder). It differs from the
+typically U-net by keeping the dimensions, i.e.  spatial dimension is not decreased and channels are not increased.
+The concatenation `C` is a cat layer (on embedded dimension) followed by a linear layer to keep the embedded dimension
+constant.
+
 ## Applications
 
 This chapter describes the applications.
@@ -258,6 +277,25 @@ Why, hath mine else world me to speeds to the princh'd;
 Bounds he is
 ```
 
+### Image Generator
+
+This application generates images from noise using a diffusion process with the U-net vision Transformer (U-ViT) as
+noise predictor.
+
+![ImageGenerator](Images/image_generator.png)
+
+The image is dived into patches which are then flattened and a linear layer is used to convert the dimension to the
+embedding dimension. Each patch is then treated as a token. In addition to the image a time step `t` and condition `c`
+(in this case a digit) is embedded to produce tokens. All these tokens are then positional encoded and passed through
+a Transformer U-net. The tokens corresponding to the image are then converted back to form an image again. This is
+done by a linear layer to convert the embedding dimension to `channels x patch_size x patch_size` followed by a reshape
+operation. A final convolution layer is applied to produce the noise prediction.
+
+The diffusion process starts with a noisy image and iteratively uses the noise predictor to remove noise and produce
+a clear image.
+
+<img src="Images/image_generator_demo.gif" height="200"/>
+
 ### Image Classifier
 
 This application implements the ViT architecture.
@@ -270,7 +308,7 @@ tokens and it is this token that is then used to perform the classification. A l
 dimension to number of classes, these logits are then send through a softmax to get probabilities. The class is then
 simply the highest probability class.
 
-![Mnist](Images/mnist.png)
+<img src="Images/mnist.png" height="200"/>
 
 ## PyTorch
 
