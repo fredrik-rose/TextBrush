@@ -233,6 +233,89 @@ typically U-net by keeping the dimensions, i.e.  spatial dimension is not decrea
 The concatenation `C` is a cat layer (on embedded dimension) followed by a linear layer to keep the embedded dimension
 constant.
 
+## Diffusion
+
+Diffusion is a process for sampling from a distribution `p(x)`. `x` could for example be all images or just a subset
+of this, like handwritten digits. Sampling directly from `p(x)` is often hard/impossible (if you want new samples) even
+for a deep neural network. To tackle this problem diffusion defines a process to convert `p(x)` to a known distribution
+like the standard normal distribution `N(0, I)` (i.e. pure noise). To sample from this distribution is trivial. Then
+what we also need is a reverse process that can convert a sample from `N(0, I)` back to `p(x)`.
+
+![Diffusion9](Images/diffusion_9.png)
+
+Note that the math behind diffusion is quite involved, this chapter only gives a high level overview and intuition.
+Only parts that are needed to implement diffusion is covered here.
+
+### Forward Diffusion
+
+The goal of the forward diffusion is to go from `p(x)` to `N(0, I)`. This is done by an iterative process of `T` time
+steps `(1, 2, ..., T)`, that is started by sampling `x_0` from `p(x)`, i.e. pick a random already existing image. In
+each time step we scale down the image and add a little bit of Gaussian noise:
+
+![Diffusion1](Images/diffusion_1.png)
+
+where `B` is the variance (controls the strength of the noise) and the noise `e` is sampled from `N(0, I)`.
+
+Adding noise like this is equivalent to sample `x_t` from a conditional normal distribution with mean `sqrt(1-B)*x_t-1`
+and variance `B`:
+
+![Diffusion2](Images/diffusion_2.png)
+
+By selecting the mean and variance this way we make sure to end up at `N(0, 1)` as `T` goes to infinity.
+
+Note that due to the properties of the Gaussian we can go directly to any time step `x_t` from `x_0` by
+
+![Diffusion3](Images/diffusion_3.png)
+
+This is very important for efficient training.
+
+### Reverse Diffusion
+
+The goal of the forward diffusion is to go from `N(0, I)` to `p(x)`. This is done by an iterative process of `T` time
+steps `(T, T-1, ..., 1)`, that is started by sampling `x_T` from `N(0, I)`, i.e. create an image containing only noise.
+In each step we remove a little bit of noise. Removing noise is however a much harder problem than adding noise. The
+reverse process is defined as:
+
+![Diffusion4](Images/diffusion_4.png)
+
+`f` is a noise predictor, typically implemented as a neural network, that predicts the noise to remove from `x_t` to
+get `x_0`, given a time step `t`.
+
+This is equivalent to sample `x_t-1` from a conditional normal distribution:
+
+![Diffusion5](Images/diffusion_5.png)
+
+By selecting the mean and variance in this way we make sure we reverse the forward process and end up at `p(x)`. Note
+however that for it to truly be the exact reverse the variance should not be exactly `B`, using `B` do however work
+well in practice.
+
+### Noise Schedule
+
+The variance `B` is typically not constant, it varies for each time step. A common schedule is linear e.g. `10e-4` to
+`0.02` and a common amount of time steps `T` is `1000`.
+
+### Conditioning
+
+To control the reverse process one can provide a condition `c` to the nose predictor function `f`:
+
+![Diffusion6](Images/diffusion_6.png)
+
+This is useful to steer to generation to e.g. generate a specific type of image.
+
+### Training
+
+To train the neural network used in the reverse process, `f` forward diffusion is used with the following algorithm:
+
+![Diffusion7](Images/diffusion_7.png)
+
+Note that the images shall be normalized to [-1,1].
+
+### Sample
+
+To sample, i.e. generate an image, reverse diffusion is used with the following algorithm:
+
+![Diffusion8](Images/diffusion_8.png)
+
 ## Applications
 
 This chapter describes the applications.
@@ -292,7 +375,7 @@ done by a linear layer to convert the embedding dimension to `channels x patch_s
 operation. A final convolution layer is applied to produce the noise prediction.
 
 The diffusion process starts with a noisy image and iteratively uses the noise predictor to remove noise and produce
-a clear image.
+a clear image. It uses a condition to control which digit to generate.
 
 <img src="Images/image_generator_demo.gif" height="200"/>
 
