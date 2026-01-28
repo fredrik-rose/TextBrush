@@ -2,11 +2,13 @@
 
 <img src="Images/image_generator.gif" height="200"/>
 
-A project that implements generative machine learning models for text and images. The focus is on handwritten digits
-and the core architectural component is the Transformer. The purpose is to implement important and impact-full machine
-learning architectures and algorithms like large language model (LLM), generative pre-trained transformer (GPT),
-vision transformer (ViT), diffusion and contrastive learning. This project is partly inspired by the work of Andrej
-Karpathy.
+A project that implements generative machine learning models for text and images. The purpose is to implement important
+and impact-full machine learning architectures and algorithms like Transformers, large language model (LLM),
+generative pre-trained transformer (GPT), vision transformer (ViT), diffusion and contrastive learning. The focus is on
+the core principles, therefore simple and easily trainable datasets like handwritten digits (Mnist) and tiny
+Shakespeare that are easy are used. Note however that the implementations are not just simplifications and hacks,
+it should be possible to just scale everything (like model size, datasets and compute) to get really good performance
+on more complex data. This project is partly inspired by the work of Andrej Karpathy.
 
 <img src="Images/text_generator.gif" height="600"/>
 
@@ -235,16 +237,18 @@ constant.
 
 ## Diffusion
 
-Diffusion is a process for sampling from a distribution `p(x)`. `x` could for example be all images or just a subset
-of this, like handwritten digits. Sampling directly from `p(x)` is often hard/impossible (if you want new samples) even
-for a deep neural network. To tackle this problem diffusion defines a process to convert `p(x)` to a known distribution
-like the standard normal distribution `N(0, I)` (i.e. pure noise). To sample from this distribution is trivial. Then
-what we also need is a reverse process that can convert a sample from `N(0, I)` back to `p(x)`.
+Diffusion is a process used to sample from a distribution `p(x)` in a clever way. `x` could for example be all images
+or just a subset of this, like handwritten digits. Sampling directly from `p(x)` is often hard/impossible (if you want
+new unseen samples) even for a deep neural network. To tackle this problem diffusion defines a process to convert
+`p(x)` to a known distribution like the standard normal distribution `N(0, I)` (i.e. pure noise). To sample from this
+distribution is trivial. Then what we also need is a reverse process that can convert a sample from `N(0, I)` back to
+`p(x)`.
 
 ![Diffusion9](Images/diffusion_9.png)
 
-Note that the math behind diffusion is quite involved, this chapter only gives a high level overview and intuition.
-Only parts that are needed to implement diffusion is covered here.
+Diffusion is quite a generic concept that could be applied to other areas than image generation. Note that the math
+behind diffusion is quite involved, this chapter only gives a high level overview and intuition. Mostly parts that are
+needed to implement diffusion is covered here.
 
 ### Forward Diffusion
 
@@ -289,6 +293,12 @@ By selecting the mean and variance in this way we make sure we reverse the forwa
 however that for it to truly be the exact reverse the variance should not be exactly `B`, using `B` do however work
 well in practice.
 
+The intuition behind this is that by predicting the total noise added we get a stable "direction" towards the final
+image, compared to the direction we would get from just predicting the noise added by the previous step. We then take
+just small step in this direction and randomly move in another direction by adding noise. The reason for adding noise
+is to provide variety, if this is skipped we would end up in the center/average of the training images, resulting in
+low variety blurry images.
+
 ### Noise Schedule
 
 The variance `B` is typically not constant, it varies for each time step. A common schedule is linear e.g. `10e-4` to
@@ -296,11 +306,22 @@ The variance `B` is typically not constant, it varies for each time step. A comm
 
 ### Conditioning
 
-To control the reverse process one can provide a condition `c` to the nose predictor function `f`:
+To control the reverse process to e.g. create a sample from a certain class, one can provide a condition `c` to the
+nose predictor function `f`:
 
 ![Diffusion6](Images/diffusion_6.png)
 
-This is useful to steer to generation to e.g. generate a specific type of image.
+This would result in a distribution conditioned on `c`:
+
+![Diffusion10](Images/diffusion_10.png)
+
+To make the process adhere to the condition even more a concept called classifier-free guidance can be used. The idea
+is to run `f` twice, once on with the condition `c` and once without. Then use the difference of these. In this way we
+can amplify the direction towards the condition/class, by a weighting factor `w`:
+
+![Diffusion11](Images/diffusion_11.png)
+
+Classifier-free guidance is crucial for good performance on complex data.
 
 ### Training
 
@@ -308,7 +329,11 @@ To train the neural network used in the reverse process, `f` forward diffusion i
 
 ![Diffusion7](Images/diffusion_7.png)
 
-Note that the images shall be normalized to [-1,1].
+Note that the images shall be normalized to [-1,1]. For large images an autoencoder can be used to first convert the
+image to a smaller latent space via the encoder, do diffusion in this space, and finally use the decoder to transform
+it back to image space. This one of the key ideas in Stable Diffusion. Make sure to watch out for overfitting,
+diffusion models typically have a sweet spot where they perform well and if trained beyond this performance is
+decreased.
 
 ### Sample
 
@@ -443,6 +468,7 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT): https://arxiv.org/abs/2010.11929
 - Language Models are Few-Shot Learners (GPT): https://arxiv.org/abs/2005.14165
 - Denoising Diffusion Probabilistic Models (DDPM) https://arxiv.org/abs/2006.11239
+- Classifier-Free Diffusion Guidance: https://arxiv.org/abs/2207.12598
 - All are Worth Words: A ViT Backbone for Diffusion Models (U-ViT): https://arxiv.org/abs/2209.12152
 - Deep Residual Learning for Image Recognition (ResNet): https://arxiv.org/abs/1512.03385
 - Gaussian Error Linear Units (GELUs): https://arxiv.org/abs/1606.08415
