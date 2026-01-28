@@ -43,6 +43,13 @@ class Mnist(torchdata.Dataset):
         return self._dataset[idx]
 
 
+def index_to_class(index: int) -> str:
+    """
+    Convert an index to the corresponding class name.
+    """
+    return str(index)
+
+
 def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
     """
     Convert a MNIST image tensor to Numpy image.

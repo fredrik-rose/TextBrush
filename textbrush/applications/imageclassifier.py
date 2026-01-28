@@ -121,9 +121,11 @@ class ImageClassifier(application.Application):
             if i >= num_images:
                 break
             pred_label = self.model.classify(image_tensor[0], device=device)
+            true_class = self._dataset_module.index_to_class(true_label[0].item())
+            pred_class = self._dataset_module.index_to_class(pred_label)
             image = self._dataset_module.denormalize(self._dataset_module.tensor_to_image(image_tensor))
             plt.imshow(image, cmap=self._cmap)
-            plt.title(f"True: {true_label[0]}, Predicted: {pred_label}")
+            plt.title(f"True: {true_class}, Predicted: {pred_class}")
             plt.axis("off")
             plt.show()
 

@@ -43,6 +43,13 @@ class Cifar10(torchdata.Dataset):
         return self._dataset[idx]
 
 
+def index_to_class(index: int) -> str:
+    """
+    Convert an index to the corresponding class name.
+    """
+    return ("plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck")[index]
+
+
 def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
     """
     Convert a CIFAR-10 image tensor to Numpy image.
