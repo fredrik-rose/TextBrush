@@ -11,9 +11,9 @@ A project that implements generative machine learning models for text and images
 and impact-full machine learning architectures and algorithms like Transformers, large language model (LLM),
 generative pre-trained transformer (GPT), vision transformer (ViT), diffusion and contrastive learning. The focus is on
 the core principles, therefore simple and easily trainable datasets like handwritten digits (Mnist) and tiny
-Shakespeare that are easy are used. Note however that the implementations are not just simplifications and hacks,
-it should be possible to just scale everything (like model size, datasets and compute) to get really good performance
-on more complex data. This project is partly inspired by the work of Andrej Karpathy.
+Shakespeare are used. Note however that the implementations are not just simplifications and hacks, it should be
+possible to just scale everything (like model size, datasets and compute) to get really good performance on more
+complex data. This project is partly inspired by the work of Andrej Karpathy.
 
 <img src="Images/text_generator.gif" height="600"/>
 
@@ -473,11 +473,26 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 - Attention Is All You Need (Transformer): https://arxiv.org/abs/1706.03762
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT): https://arxiv.org/abs/2010.11929
 - Language Models are Few-Shot Learners (GPT): https://arxiv.org/abs/2005.14165
-- Denoising Diffusion Probabilistic Models (DDPM) https://arxiv.org/abs/2006.11239
-- Denoising Diffusion Implicit Models (DDIM) https://arxiv.org/abs/2010.02502
+- Denoising Diffusion Probabilistic Models (DDPM): https://arxiv.org/abs/2006.11239
+- Denoising Diffusion Implicit Models (DDIM): https://arxiv.org/abs/2010.02502
 - Classifier-Free Diffusion Guidance: https://arxiv.org/abs/2207.12598
 - All are Worth Words: A ViT Backbone for Diffusion Models (U-ViT): https://arxiv.org/abs/2209.12152
 - Deep Residual Learning for Image Recognition (ResNet): https://arxiv.org/abs/1512.03385
 - Gaussian Error Linear Units (GELUs): https://arxiv.org/abs/1606.08415
 - Layer Normalization: https://arxiv.org/abs/1607.06450
 - Dropout: A Simple Way to Prevent Neural Networks from Overfitting: https://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf
+
+## TODO
+
+* Implement FID metric
+* Add and use CIFAR-10
+* Set random seed?
+* Add learning rate scheduler?
+* Add augmentations?
+* Create data classes for settings?
+* Implement CLIP
+* Text generate Mnist (using CLIP)
+* Text search Mnist (using CLIP)
+* Flash attention
+* Sparse attention
+* Multi-head Latent Attention (MLA)
