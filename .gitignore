@@ -19,4 +19,4 @@ dist/
 .ipynb_checkpoints
 
 # Datasets
-textbrush/datasets/MNIST/
+textbrush/datasets/data/MNIST/

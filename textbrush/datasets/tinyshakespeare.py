@@ -9,7 +9,7 @@ import pathlib
 import torch
 import torch.utils.data as torchdata
 
-DATASET_FILE_PATH = pathlib.Path(__file__).parent / "tinyshakespeare.txt"
+DATASET_FILE_PATH = pathlib.Path(__file__).parent / "data" / "tinyshakespeare.txt"
 
 
 class Tokenizer:

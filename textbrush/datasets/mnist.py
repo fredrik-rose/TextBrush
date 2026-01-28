@@ -13,7 +13,7 @@ import torchvision
 MEAN = 0.1307
 STD = 0.3081
 
-DATASET_PATH = pathlib.Path(__file__).parent
+DATASET_PATH = pathlib.Path(__file__).parent / "data"
 
 
 class Mnist(torchdata.Dataset):
@@ -30,7 +30,7 @@ class Mnist(torchdata.Dataset):
             root=DATASET_PATH,
             train=train,
             transform=transform,
-            download=True,
+            download=False,
         )
 
     def __len__(self) -> int:
