@@ -3,6 +3,7 @@ Hand-written digit image generator.
 """
 
 import pathlib
+import types
 import typing
 
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ from torch import nn
 from torchvision.transforms import v2
 
 from textbrush.algorithms import diffusion
+from textbrush.datasets import cifar10
 from textbrush.datasets import mnist
 from textbrush.models import uvit
 from textbrush.optimizers import modeltrainer
@@ -41,7 +43,8 @@ TRAINING_ITERATIONS = 20000
 
 VISUALIZATION_STEPS = 1
 
-MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "image-generator.pth"
+MODEL_PATH_MNIST = pathlib.Path(__file__).resolve().parent / "weights" / "image-generator-mnist.pth"
+MODEL_PATH_CIFAR10 = pathlib.Path(__file__).resolve().parent / "weights" / "image-generator-cifar10.pth"
 
 
 class ImageGenerator(application.Application):
@@ -49,11 +52,27 @@ class ImageGenerator(application.Application):
     Image generator using diffusion with U-ViT as backend.
     """
 
+    _dataset_module: types.ModuleType
+    _dataset_class: typing.Union[type[mnist.Mnist], type[cifar10.Cifar10]]
+    _cmap: str | None
+
     def __init__(
         self,
         dataset_name: str = "mnist",
     ):
-        assert dataset_name == "mnist"
+        match dataset_name:
+            case "mnist":
+                _model_path = MODEL_PATH_MNIST
+                self._dataset_module = mnist
+                self._dataset_class = mnist.Mnist
+                self._cmap = "gray"
+            case "cifar10":
+                _model_path = MODEL_PATH_CIFAR10
+                self._dataset_module = cifar10
+                self._dataset_class = cifar10.Cifar10
+                self._cmap = None
+            case _:
+                assert False
 
         betas = diffusion.get_linear_noise_schedule(
             b_1=NOISE_SCHEDULE_VARIANCE_1,
@@ -68,7 +87,7 @@ class ImageGenerator(application.Application):
             ]
         )
         dataset = DiffusionDataset(
-            dataset=mnist.Mnist(
+            dataset=self._dataset_class(
                 transform=image_transform,
                 train=True,
             ),
@@ -97,7 +116,7 @@ class ImageGenerator(application.Application):
         super().__init__(
             dataset=dataset,
             model=model,
-            default_model_file_path=MODEL_PATH,
+            default_model_file_path=_model_path,
         )
 
     def __call__(
@@ -115,11 +134,11 @@ class ImageGenerator(application.Application):
             diffuser.to(device)
             self.model.to(device)
             self.model.eval()
-            with LiveImage() as live_image:
+            with LiveImage(cmap=self._cmap) as live_image:
                 reverse = diffuser.reverse_diffusion(size=size, condition=digit, noise_predictor=self.model)
                 for i, x in enumerate(reverse):
                     draw = i % VISUALIZATION_STEPS == 0
-                    image = diffusion_denormalize(mnist.tensor_to_image(x))
+                    image = diffusion_denormalize(self._dataset_module.tensor_to_image(x))
                     live_image.update(image, draw=draw)
                     plt.title(f"{round(((i + 1) / (diffuser.time_steps // diffusion.DDIM_STEP_SIZE)) * 100)} %")
 
@@ -148,7 +167,7 @@ class ImageGenerator(application.Application):
         Evaluate the model in the validation dataset.
         """
         validation_dataset = DiffusionDataset(
-            dataset=mnist.Mnist(
+            dataset=self._dataset_class(
                 transform=self._image_transform,
                 train=False,
             ),

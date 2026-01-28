@@ -156,7 +156,7 @@ def parse() -> argparse.Namespace:
     image_generator_parser.add_argument(
         "--dataset",
         type=str,
-        choices=("mnist",),
+        choices=("mnist", "cifar10"),
         help="dataset to use",
         default="mnist",
     )
