@@ -1,6 +1,11 @@
 # Text Brush
 
-<img src="Images/image_generator.gif" height="200"/>
+<p>
+  <img src="Images/ddpm.gif" height="200"/>
+  <img src="Images/ddim.gif" height="200"/>
+  <br>
+  <em>DDPM (left) and DDIM (right)</em>
+</p>
 
 A project that implements generative machine learning models for text and images. The purpose is to implement important
 and impact-full machine learning architectures and algorithms like Transformers, large language model (LLM),
@@ -297,7 +302,8 @@ The intuition behind this is that by predicting the total noise added we get a s
 image, compared to the direction we would get from just predicting the noise added by the previous step. We then take
 just small step in this direction and randomly move in another direction by adding noise. The reason for adding noise
 is to provide variety, if this is skipped we would end up in the center/average of the training images, resulting in
-low variety blurry images.
+low variety blurry images. Note that there are alternatives to this reverse process, DDIM for example gives good result
+even without adding any noise.
 
 ### Noise Schedule
 
@@ -468,6 +474,7 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT): https://arxiv.org/abs/2010.11929
 - Language Models are Few-Shot Learners (GPT): https://arxiv.org/abs/2005.14165
 - Denoising Diffusion Probabilistic Models (DDPM) https://arxiv.org/abs/2006.11239
+- Denoising Diffusion Implicit Models (DDIM) https://arxiv.org/abs/2010.02502
 - Classifier-Free Diffusion Guidance: https://arxiv.org/abs/2207.12598
 - All are Worth Words: A ViT Backbone for Diffusion Models (U-ViT): https://arxiv.org/abs/2209.12152
 - Deep Residual Learning for Image Recognition (ResNet): https://arxiv.org/abs/1512.03385

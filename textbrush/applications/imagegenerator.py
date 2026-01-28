@@ -39,7 +39,7 @@ BATCH_SIZE = 128
 LEARNING_RATE = 3e-4
 TRAINING_ITERATIONS = 20000
 
-VISUALIZATION_STEPS = 10
+VISUALIZATION_STEPS = 1
 
 MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "image-generator.pth"
 
@@ -110,14 +110,13 @@ class ImageGenerator(application.Application):
             diffuser.to(device)
             self.model.to(device)
             self.model.eval()
-
             with LiveImage() as live_image:
                 reverse = diffuser.reverse_diffusion(size=size, condition=digit, noise_predictor=self.model)
                 for i, x in enumerate(reverse):
                     draw = i % VISUALIZATION_STEPS == 0
                     image = diffusion_denormalize(mnist.tensor_to_image(x))
                     live_image.update(image, draw=draw)
-                    plt.title(f"{round((i / diffuser.time_steps) * 100)} %")
+                    plt.title(f"{round(((i + 1) / (diffuser.time_steps // diffusion.DDIM_STEP_SIZE)) * 100)} %")
 
     def train(
         self,
