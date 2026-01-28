@@ -171,7 +171,7 @@ def parse() -> argparse.Namespace:
     image_classifier_parser.add_argument(
         "--dataset",
         type=str,
-        choices=("mnist",),
+        choices=("mnist", "cifar10"),
         help="dataset to use",
         default="mnist",
     )

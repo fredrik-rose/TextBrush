@@ -10,8 +10,8 @@ import torch
 import torch.utils.data as torchdata
 import torchvision
 
-MEAN = 0.1307
-STD = 0.3081
+MEAN = (0.1307,)
+STD = (0.3081,)
 
 DATASET_PATH = pathlib.Path(__file__).parent / "data"
 

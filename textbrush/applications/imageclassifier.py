@@ -3,6 +3,7 @@ Hand-written digit image classifier.
 """
 
 import pathlib
+import types
 import typing
 
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ import torch.utils.data as torchdata
 from torch import nn
 from torchvision.transforms import v2
 
+from textbrush.datasets import cifar10
 from textbrush.datasets import mnist
 from textbrush.models import vit
 from textbrush.optimizers import modeltrainer
@@ -33,7 +35,8 @@ BATCH_SIZE = 128
 LEARNING_RATE = 3e-4
 TRAINING_ITERATIONS = 5000
 
-MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "image-classifier.pth"
+MODEL_PATH_MNIST = pathlib.Path(__file__).resolve().parent / "weights" / "image-classifier-mnist.pth"
+MODEL_PATH_CIFAR10 = pathlib.Path(__file__).resolve().parent / "weights" / "image-classifier-cifar10.pth"
 
 
 class ImageClassifier(application.Application):
@@ -41,20 +44,36 @@ class ImageClassifier(application.Application):
     Image classifier using ViT model as backend.
     """
 
+    _dataset_module: types.ModuleType
+    _dataset_class: typing.Union[type[mnist.Mnist], type[cifar10.Cifar10]]
+    _cmap: str | None
+
     def __init__(
         self,
         dataset_name: str = "mnist",
     ):
-        assert dataset_name == "mnist"
+        match dataset_name:
+            case "mnist":
+                _model_path = MODEL_PATH_MNIST
+                self._dataset_module = mnist
+                self._dataset_class = mnist.Mnist
+                self._cmap = "gray"
+            case "cifar10":
+                _model_path = MODEL_PATH_CIFAR10
+                self._dataset_module = cifar10
+                self._dataset_class = cifar10.Cifar10
+                self._cmap = None
+            case _:
+                assert False
 
         image_transform = v2.Compose(
             [
                 v2.ToImage(),
                 v2.ToDtype(torch.float32, scale=True),
-                v2.Normalize(mean=(mnist.MEAN,), std=(mnist.STD,)),
+                v2.Normalize(mean=self._dataset_module.MEAN, std=self._dataset_module.STD),
             ]
         )
-        dataset = mnist.Mnist(
+        dataset = self._dataset_class(
             transform=image_transform,
             train=True,
         )
@@ -79,7 +98,7 @@ class ImageClassifier(application.Application):
         super().__init__(
             dataset=dataset,
             model=model,
-            default_model_file_path=MODEL_PATH,
+            default_model_file_path=_model_path,
         )
 
     def __call__(
@@ -91,7 +110,7 @@ class ImageClassifier(application.Application):
         Classify images.
         """
         data_loader = torchdata.DataLoader(
-            mnist.Mnist(
+            self._dataset_class(
                 transform=self._image_transform,
                 train=False,
             ),
@@ -102,8 +121,8 @@ class ImageClassifier(application.Application):
             if i >= num_images:
                 break
             pred_label = self.model.classify(image_tensor[0], device=device)
-            image = mnist.denormalize(mnist.tensor_to_image(image_tensor))
-            plt.imshow(image, cmap="gray")
+            image = self._dataset_module.denormalize(self._dataset_module.tensor_to_image(image_tensor))
+            plt.imshow(image, cmap=self._cmap)
             plt.title(f"True: {true_label[0]}, Predicted: {pred_label}")
             plt.axis("off")
             plt.show()
@@ -132,7 +151,7 @@ class ImageClassifier(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        validation_dataset = mnist.Mnist(
+        validation_dataset = self._dataset_class(
             transform=self._image_transform,
             train=False,
         )
