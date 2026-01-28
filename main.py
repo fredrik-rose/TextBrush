@@ -25,9 +25,9 @@ DEFAULT_DIGIT = 2
 DEFAULT_NUM_IMAGES = 5
 
 ALL_APPLICATIONS = {
-    "text": textgenerator.TextGenerator(),
-    "image": imagegenerator.ImageGenerator(),
-    "class": imageclassifier.ImageClassifier(),
+    "text": textgenerator.TextGenerator,
+    "image": imagegenerator.ImageGenerator,
+    "class": imageclassifier.ImageClassifier,
 }
 
 ALL_TRAINING_ITERATIONS = {
@@ -68,7 +68,7 @@ def main() -> None:
     """
     args = parse()
     device = get_device()
-    application = ALL_APPLICATIONS[args.application]
+    application = ALL_APPLICATIONS[args.application](dataset_name=args.dataset)  # type: ignore[abstract]
 
     if args.train:
         training_iterations = ALL_TRAINING_ITERATIONS[args.application]
@@ -135,6 +135,13 @@ def parse() -> argparse.Namespace:
         help="length (number of characters) of text to generate",
         default=DEFAULT_TEXT_GENERATION_LENGTH,
     )
+    text_generator_parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=("tiny-shakespeare",),
+        help="dataset to use",
+        default="tiny-shakespeare",
+    )
 
     image_generator_parser = subparsers.add_parser("image", help="Hand-written digit image generator")
     image_generator_parser.add_argument(
@@ -146,6 +153,13 @@ def parse() -> argparse.Namespace:
         help="digit to generate",
         default=DEFAULT_DIGIT,
     )
+    image_generator_parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=("mnist",),
+        help="dataset to use",
+        default="mnist",
+    )
 
     image_classifier_parser = subparsers.add_parser("class", help="Hand-written digit classifier")
     image_classifier_parser.add_argument(
@@ -153,6 +167,13 @@ def parse() -> argparse.Namespace:
         type=int,
         help="number of images to classify",
         default=DEFAULT_NUM_IMAGES,
+    )
+    image_classifier_parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=("mnist",),
+        help="dataset to use",
+        default="mnist",
     )
 
     args = parser.parse_args()

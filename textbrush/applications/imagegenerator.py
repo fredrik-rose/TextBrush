@@ -49,7 +49,12 @@ class ImageGenerator(application.Application):
     Image generator using diffusion with U-ViT as backend.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        dataset_name: str = "mnist",
+    ):
+        assert dataset_name == "mnist"
+
         betas = diffusion.get_linear_noise_schedule(
             b_1=NOISE_SCHEDULE_VARIANCE_1,
             b_t=NOISE_SCHEDULE_VARIANCE_T,

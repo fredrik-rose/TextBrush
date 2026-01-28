@@ -41,7 +41,12 @@ class ImageClassifier(application.Application):
     Image classifier using ViT model as backend.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        dataset_name: str = "mnist",
+    ):
+        assert dataset_name == "mnist"
+
         image_transform = v2.Compose(
             [
                 v2.ToImage(),

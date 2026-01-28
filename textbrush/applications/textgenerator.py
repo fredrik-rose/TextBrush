@@ -43,7 +43,12 @@ class TextGenerator(application.Application):
     Text generator using a GPT model as backend.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        dataset_name: str = "tiny-shakespeare",
+    ):
+        assert dataset_name == "tiny-shakespeare"
+
         self.tokenizer = tinyshakespeare.Tokenizer()
 
         self._split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
