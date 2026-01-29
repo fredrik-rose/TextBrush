@@ -97,11 +97,6 @@ class ImageGeneratorMnistConfig(ImageGeneratorConfig):
     visualization_steps: int = 1
 
     def __post_init__(self):
-        betas = diffusion.get_linear_noise_schedule(
-            b_1=self.noise_schedule_variance_1,
-            b_t=self.noise_schedule_variance_t,
-            time_steps=self.noise_schedule_steps,
-        )
         image_transform = v2.Compose(
             [
                 v2.ToImage(),  # [0, 255]
@@ -110,21 +105,14 @@ class ImageGeneratorMnistConfig(ImageGeneratorConfig):
             ]
         )
 
-        self.train_dataset = DiffusionDataset(
-            dataset=mnist.Mnist(
-                transform=image_transform,
-                train=True,
-            ),
-            betas=betas,
+        self.train_dataset = mnist.Mnist(
+            transform=image_transform,
+            train=True,
         )
-        self.val_dataset = DiffusionDataset(
-            dataset=mnist.Mnist(
-                transform=image_transform,
-                train=False,
-            ),
-            betas=betas,
+        self.val_dataset = mnist.Mnist(
+            transform=image_transform,
+            train=False,
         )
-        self.betas = betas
 
     @staticmethod
     def tensor_to_image(x: torch.Tensor) -> np.ndarray:
@@ -165,11 +153,6 @@ class ImageGeneratorCifar10Config(ImageGeneratorConfig):
     visualization_steps: int = 1
 
     def __post_init__(self):
-        betas = diffusion.get_linear_noise_schedule(
-            b_1=self.noise_schedule_variance_1,
-            b_t=self.noise_schedule_variance_t,
-            time_steps=self.noise_schedule_steps,
-        )
         image_transform = v2.Compose(
             [
                 v2.ToImage(),  # [0, 255]
@@ -178,21 +161,14 @@ class ImageGeneratorCifar10Config(ImageGeneratorConfig):
             ]
         )
 
-        self.train_dataset = DiffusionDataset(
-            dataset=cifar10.Cifar10(
-                transform=image_transform,
-                train=True,
-            ),
-            betas=betas,
+        self.train_dataset = cifar10.Cifar10(
+            transform=image_transform,
+            train=True,
         )
-        self.val_dataset = DiffusionDataset(
-            dataset=cifar10.Cifar10(
-                transform=image_transform,
-                train=False,
-            ),
-            betas=betas,
+        self.val_dataset = cifar10.Cifar10(
+            transform=image_transform,
+            train=False,
         )
-        self.betas = betas
 
     @staticmethod
     def tensor_to_image(x: torch.Tensor) -> np.ndarray:
@@ -219,13 +195,27 @@ class ImageGenerator(application.Application):
             case _:
                 assert False
 
-        channels, height, width = self._config.train_dataset[0][0]["x"].shape
+        self._betas = diffusion.get_linear_noise_schedule(
+            b_1=self._config.noise_schedule_variance_1,
+            b_t=self._config.noise_schedule_variance_t,
+            time_steps=self._config.noise_schedule_steps,
+        )
+        self._train_dataset = DiffusionDataset(
+            dataset=self._config.train_dataset,
+            betas=self._betas,
+        )
+        self._val_dataset = DiffusionDataset(
+            dataset=self._config.val_dataset,
+            betas=self._betas,
+        )
+
+        channels, height, width = self._train_dataset[0][0]["x"].shape
         model = uvit.UViT(
             channels=channels,
             height=height,
             width=width,
             patch_size=self._config.patch_size,
-            time_steps=len(self._config.betas),
+            time_steps=len(self._betas),
             num_conditions=self._config.num_classes,
             num_layers=self._config.num_layers,
             num_heads=self._config.num_heads,
@@ -236,7 +226,7 @@ class ImageGenerator(application.Application):
         )
 
         super().__init__(
-            dataset=self._config.val_dataset,
+            dataset=self._val_dataset,
             model=model,
             batch_size=self._config.batch_size,
             training_iterations=self._config.training_iterations,
@@ -251,8 +241,8 @@ class ImageGenerator(application.Application):
         """
         Generate an image.
         """
-        size = next(iter(torchdata.DataLoader(self._config.val_dataset, batch_size=1)))[0]["x"].shape
-        diffuser = diffusion.Diffuser(self._config.betas)
+        size = next(iter(torchdata.DataLoader(self._val_dataset, batch_size=1)))[0]["x"].shape
+        diffuser = diffusion.Diffuser(self._betas)
 
         with torch.no_grad():
             diffuser.to(device)
@@ -273,7 +263,7 @@ class ImageGenerator(application.Application):
         """
         Train the model.
         """
-        data_loader = torchdata.DataLoader(self._config.train_dataset, batch_size=self.batch_size, shuffle=True)
+        data_loader = torchdata.DataLoader(self._train_dataset, batch_size=self.batch_size, shuffle=True)
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self._config.learning_rate)
         yield from modeltrainer.train_model(
             model=self.model,
@@ -290,7 +280,7 @@ class ImageGenerator(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        data_loader = torchdata.DataLoader(self._config.val_dataset, batch_size=self.batch_size, shuffle=False)
+        data_loader = torchdata.DataLoader(self._val_dataset, batch_size=self.batch_size, shuffle=False)
         evaluator = modeltrainer.eval_model(
             model=self.model,
             data_loader=data_loader,
