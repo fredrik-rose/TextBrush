@@ -245,7 +245,7 @@ class ImageGenerator(application.Application):
 
     def __call__(
         self,
-        digit: int,
+        condition: int,
         device: str = "cpu",
     ) -> None:
         """
@@ -259,7 +259,7 @@ class ImageGenerator(application.Application):
             self.model.to(device)
             self.model.eval()
             with LiveImage(cmap=self._config.cmap) as live_image:
-                reverse = diffuser.reverse_diffusion(size=size, condition=digit, noise_predictor=self.model)
+                reverse = diffuser.reverse_diffusion(size=size, condition=condition, noise_predictor=self.model)
                 for i, x in enumerate(reverse):
                     draw = i % self._config.visualization_steps == 0
                     image = diffusion_denormalize(self._config.tensor_to_image(x))

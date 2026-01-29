@@ -18,10 +18,12 @@ from textbrush.applications import application as app
 from textbrush.applications import imageclassifier
 from textbrush.applications import imagegenerator
 from textbrush.applications import textgenerator
+from textbrush.datasets import cifar10
 
 EPOCHS = 10
 DEFAULT_TEXT_GENERATION_LENGTH = 1000
 DEFAULT_DIGIT = 2
+DEFAULT_CLASS = "car"
 DEFAULT_NUM_IMAGES = 5
 
 ALL_APPLICATIONS = {
@@ -79,7 +81,8 @@ def main() -> None:
             for char in application(prompt=prompt, length=args.n, device=device):  # type: ignore[operator]
                 print(char, end="", flush=True)
         case "image":
-            application(digit=args.digit, device=device)  # type: ignore[operator]
+            condition = args.digit if args.dataset == "mnist" else cifar10.class_to_index(args.class_name)
+            application(condition=condition, device=device)  # type: ignore[operator]
         case "class":
             application(num_images=args.n, device=device)  # type: ignore[operator]
         case _:
@@ -139,6 +142,15 @@ def parse() -> argparse.Namespace:
         metavar="[0-9]",
         help="digit to generate",
         default=DEFAULT_DIGIT,
+    )
+    image_generator_parser.add_argument(
+        "-c",
+        "--class-name",
+        type=str,
+        choices=cifar10.CLASSES,
+        metavar="class",
+        help=f"object class to generate: {', '.join(cifar10.CLASSES)}",
+        default=DEFAULT_CLASS,
     )
     image_generator_parser.add_argument(
         "--dataset",

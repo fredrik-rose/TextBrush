@@ -10,6 +10,7 @@ import torch
 import torch.utils.data as torchdata
 import torchvision
 
+CLASSES = ("plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck")
 MEAN = (0.5, 0.5, 0.5)
 STD = (0.5, 0.5, 0.5)
 
@@ -43,11 +44,18 @@ class Cifar10(torchdata.Dataset):
         return self._dataset[idx]
 
 
+def class_to_index(class_name: str) -> int:
+    """
+    Convert a class to the corresponding index.
+    """
+    return CLASSES.index(class_name)
+
+
 def index_to_class(index: int) -> str:
     """
     Convert an index to the corresponding class name.
     """
-    return ("plane", "car", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck")[index]
+    return CLASSES[index]
 
 
 def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
