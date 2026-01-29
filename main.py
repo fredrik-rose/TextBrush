@@ -21,6 +21,7 @@ from textbrush.applications import textgenerator
 from textbrush.datasets import cifar10
 
 EPOCHS = 10
+
 DEFAULT_TEXT_GENERATION_LENGTH = 1000
 DEFAULT_DIGIT = 2
 DEFAULT_CLASS = "car"

@@ -484,12 +484,11 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 
 ## TODO
 
+* Add requirements.txt
 * Implement FID metric
-* Add and use CIFAR-10
 * Set random seed?
 * Add learning rate scheduler?
 * Add augmentations?
-* Create data classes for settings?
 * Implement CLIP
 * Text generate Mnist (using CLIP)
 * Text search Mnist (using CLIP)

@@ -1,5 +1,5 @@
 """
-Hand-written digit image classifier.
+Image classifier.
 """
 
 import abc

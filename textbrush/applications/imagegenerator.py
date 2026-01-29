@@ -1,5 +1,5 @@
 """
-Hand-written digit image generator.
+Image generator.
 """
 
 import abc
