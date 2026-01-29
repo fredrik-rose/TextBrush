@@ -23,8 +23,6 @@ from textbrush.datasets import cifar10
 EPOCHS = 10
 
 DEFAULT_TEXT_GENERATION_LENGTH = 1000
-DEFAULT_DIGIT = 2
-DEFAULT_CLASS = "car"
 DEFAULT_NUM_IMAGES = 5
 
 ALL_APPLICATIONS = {
@@ -57,9 +55,9 @@ def main() -> None:
     """
     Entry point.
     """
-    args = parse()
+    args, dataset = parse()
     device = get_device()
-    application = ALL_APPLICATIONS[args.application](dataset_name=args.dataset)  # type: ignore[abstract]
+    application = ALL_APPLICATIONS[args.application](dataset_name=dataset)  # type: ignore[abstract]
 
     if args.train:
         num_tokens_in_batch = application.batch_size * application.model.max_num_tokens
@@ -82,7 +80,7 @@ def main() -> None:
             for char in application(prompt=prompt, length=args.n, device=device):  # type: ignore[operator]
                 print(char, end="", flush=True)
         case "image":
-            condition = args.digit if args.dataset == "mnist" else cifar10.class_to_index(args.class_name)
+            condition = args.digit if dataset == "mnist" else cifar10.class_to_index(args.class_name)
             application(condition=condition, device=device)  # type: ignore[operator]
         case "class":
             application(num_images=args.n, device=device)  # type: ignore[operator]
@@ -90,7 +88,7 @@ def main() -> None:
             assert False
 
 
-def parse() -> argparse.Namespace:
+def parse() -> tuple[argparse.Namespace, str]:
     """
     Argument parser.
     """
@@ -126,42 +124,27 @@ def parse() -> argparse.Namespace:
         help="length (number of characters) of text to generate",
         default=DEFAULT_TEXT_GENERATION_LENGTH,
     )
-    text_generator_parser.add_argument(
-        "--dataset",
-        type=str,
-        choices=("tiny-shakespeare",),
-        help="dataset to use",
-        default="tiny-shakespeare",
-    )
 
-    image_generator_parser = subparsers.add_parser("image", help="Hand-written digit image generator")
-    image_generator_parser.add_argument(
+    image_generator_parser = subparsers.add_parser("image", help="Image generator")
+    condition_group = image_generator_parser.add_mutually_exclusive_group(required=True)
+    condition_group.add_argument(
         "-d",
         "--digit",
         type=int,
         choices=range(10),
         metavar="[0-9]",
         help="digit to generate",
-        default=DEFAULT_DIGIT,
     )
-    image_generator_parser.add_argument(
+    condition_group.add_argument(
         "-c",
         "--class-name",
         type=str,
         choices=cifar10.CLASSES,
         metavar="class",
         help=f"object class to generate: {', '.join(cifar10.CLASSES)}",
-        default=DEFAULT_CLASS,
-    )
-    image_generator_parser.add_argument(
-        "--dataset",
-        type=str,
-        choices=("mnist", "cifar10"),
-        help="dataset to use",
-        default="mnist",
     )
 
-    image_classifier_parser = subparsers.add_parser("class", help="Hand-written digit classifier")
+    image_classifier_parser = subparsers.add_parser("class", help="Image classifier")
     image_classifier_parser.add_argument(
         "-n",
         type=int,
@@ -169,15 +152,27 @@ def parse() -> argparse.Namespace:
         default=DEFAULT_NUM_IMAGES,
     )
     image_classifier_parser.add_argument(
-        "--dataset",
+        "-t",
+        "--type",
         type=str,
-        choices=("mnist", "cifar10"),
-        help="dataset to use",
-        default="mnist",
+        choices=("digit", "object"),
+        help="type to classify",
+        default="digit",
     )
 
     args = parser.parse_args()
-    return args
+
+    match args.application:
+        case "text":
+            dataset = "tiny-shakespeare"
+        case "image":
+            dataset = "mnist" if args.digit is not None else "cifar10"
+        case "class":
+            dataset = "mnist" if args.type == "digit" else "cifar10"
+        case _:
+            assert False
+
+    return args, dataset
 
 
 def get_device() -> str:

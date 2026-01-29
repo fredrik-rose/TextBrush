@@ -1,10 +1,10 @@
 # Text Brush
 
 <p>
-  <img src="Images/ddpm.gif" height="200"/>
-  <img src="Images/ddim.gif" height="200"/>
+  <img src="Images/horse_1.gif" height="100"/>
+  <img src="Images/horse_2.gif" height="100"/>
   <br>
-  <em>DDPM (left) and DDIM (right)</em>
+  <em>Horses?</em>
 </p>
 
 A project that implements generative machine learning models for text and images. The purpose is to implement important
@@ -74,7 +74,7 @@ make lint
 
 ## Datasets
 
-The datasets used are Tiny Shakespeare and MNIST.
+The datasets used are Tiny Shakespeare, MNIST and CIFAR-10.
 
 ## Attention
 
@@ -408,7 +408,12 @@ operation. A final convolution layer is applied to produce the noise prediction.
 The diffusion process starts with a noisy image and iteratively uses the noise predictor to remove noise and produce
 a clear image. It uses a condition to control which digit to generate.
 
-<img src="Images/image_generator_demo.gif" height="200"/>
+<p>
+  <img src="Images/ddpm.gif" height="200"/>
+  <img src="Images/ddim.gif" height="200"/>
+  <br>
+  <em>DDPM (left) and DDIM (right)</em>
+</p>
 
 ### Image Classifier
 
