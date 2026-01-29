@@ -2,6 +2,7 @@
 Shakespeare text generator.
 """
 
+import dataclasses
 import math
 import pathlib
 import typing
@@ -17,132 +18,6 @@ from textbrush.models import gpt
 from textbrush.optimizers import modeltrainer
 
 from . import application
-
-MAX_TOKENS = 128
-NUM_LAYERS = 6
-NUM_HEADS = 4
-EMBEDDED_DIMENSION = 256
-FEED_FORWARD_DIMENSION = EMBEDDED_DIMENSION * 4
-
-DROPOUT = 0.2
-ATTENTION_DROPOUT = DROPOUT
-
-DATASET_SPLIT = 0.99
-
-BATCH_SIZE = 64
-LEARNING_RATE = 3e-4
-TRAINING_ITERATIONS = 5000
-
-TOP_K = 10
-
-MODEL_PATH = pathlib.Path(__file__).resolve().parent / "weights" / "text-generator.pth"
-
-
-class TextGenerator(application.Application):
-    """
-    Text generator using a GPT model as backend.
-    """
-
-    def __init__(
-        self,
-        dataset_name: str = "tiny-shakespeare",
-    ):
-        assert dataset_name == "tiny-shakespeare"
-
-        self.tokenizer = tinyshakespeare.Tokenizer()
-
-        self._split = [DATASET_SPLIT, (1.0 - DATASET_SPLIT)]
-        self._loss_function = FlattenedCrossEntropy
-
-        dataset = tinyshakespeare.TinyShakespeare(
-            tokenizer=self.tokenizer,
-            block_size=MAX_TOKENS,
-        )
-        model = gpt.GPT(
-            vocab_size=self.tokenizer.vocab_size,
-            num_tokens=MAX_TOKENS,
-            num_layers=NUM_LAYERS,
-            num_heads=NUM_HEADS,
-            embed_dim=EMBEDDED_DIMENSION,
-            feed_forward_dim=FEED_FORWARD_DIMENSION,
-            dropout=DROPOUT,
-            attention_dropout=ATTENTION_DROPOUT,
-        )
-
-        super().__init__(
-            dataset=dataset,
-            model=model,
-            default_model_file_path=MODEL_PATH,
-        )
-
-    def __call__(
-        self,
-        prompt: str,
-        length: int,
-        device: str = "cpu",
-    ) -> typing.Generator[str, None, None]:
-        """
-        Generate text given a prompt.
-        """
-        tokens = self.tokenizer.encode(prompt)  # type: ignore[attr-defined]
-        generator = self.model.generate(tokens, k=TOP_K, device=device)
-        yield prompt
-        for _ in range(length):
-            try:
-                yield self.tokenizer.decode([next(generator)])  # type: ignore[attr-defined]
-            except StopIteration:
-                assert False
-        yield "\n"
-
-    def train(
-        self,
-        device: str,
-    ) -> typing.Generator[float, None, None]:
-        """
-        Train the model.
-        """
-        train_dataset, _ = dataset_spliter.split_ordered(self.dataset, self._split)
-        data_loader = torchdata.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
-        yield from modeltrainer.train_model(
-            model=self.model,
-            data_loader=data_loader,
-            loss_function=self._loss_function(reduction="mean"),
-            optimizer=optimizer,
-            device=device,
-        )
-
-    def eval(
-        self,
-        device: str,
-    ) -> dict[str, float]:
-        """
-        Evaluate the model in the validation dataset.
-        """
-        _, validation_dataset = dataset_spliter.split_ordered(self.dataset, self._split)
-        data_loader = torchdata.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
-        evaluator = modeltrainer.eval_model(
-            model=self.model,
-            data_loader=data_loader,
-            loss_function=self._loss_function(reduction="sum"),
-            device=device,
-        )
-
-        total_loss = 0.0
-        total_tokens = 0
-
-        for y_true, _, batch_loss in evaluator:
-            num_tokens = y_true.numel()
-            total_loss += batch_loss.item()
-            total_tokens += num_tokens
-
-        loss = total_loss / total_tokens
-        perplexity = math.exp(loss)
-
-        return {
-            "val loss": loss,
-            "perplexity (PPL)": perplexity,
-        }
 
 
 class FlattenedCrossEntropy(nn.Module):
@@ -167,3 +42,142 @@ class FlattenedCrossEntropy(nn.Module):
         y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
         y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
         return self._loss(y_pred, y_true)
+
+
+@dataclasses.dataclass
+class TextGeneratorTinyShakespeareConfig:
+    """
+    Settings.
+    """
+
+    max_tokens: int = 128
+
+    num_layers: int = 6
+    num_heads: int = 4
+    embedded_dimension: int = 256
+    feed_forward_dimension: int = 256 * 4
+
+    dropout: float = 0.2
+    attention_dropout: float = 0.2
+
+    dataset_split: float = 0.9
+
+    batch_size: int = 64
+    learning_rate: float = 3e-4
+    training_iterations: int = 5000
+    loss_function: typing.Type[nn.Module] = FlattenedCrossEntropy
+
+    model_path: pathlib.Path = pathlib.Path(__file__).resolve().parent / "weights" / "text-generator.pth"
+
+    top_k: int = 10
+
+    def __post_init__(self):
+        tokenizer = tinyshakespeare.Tokenizer()
+        dataset = tinyshakespeare.TinyShakespeare(
+            tokenizer=tokenizer,
+            block_size=self.max_tokens,
+        )
+        split = [self.dataset_split, (1.0 - self.dataset_split)]
+
+        self.train_dataset, self.val_dataset = dataset_spliter.split_ordered(dataset, split)
+        self.tokenizer = tokenizer
+
+
+class TextGenerator(application.Application):
+    """
+    Text generator using a GPT model as backend.
+    """
+
+    def __init__(
+        self,
+        dataset_name: str = "tiny-shakespeare",
+    ):
+        assert dataset_name == "tiny-shakespeare"
+
+        self._config = TextGeneratorTinyShakespeareConfig()
+
+        model = gpt.GPT(
+            vocab_size=self._config.tokenizer.vocab_size,
+            num_tokens=self._config.max_tokens,
+            num_layers=self._config.num_layers,
+            num_heads=self._config.num_heads,
+            embed_dim=self._config.embedded_dimension,
+            feed_forward_dim=self._config.feed_forward_dimension,
+            dropout=self._config.dropout,
+            attention_dropout=self._config.attention_dropout,
+        )
+
+        super().__init__(
+            dataset=self._config.val_dataset,
+            model=model,
+            batch_size=self._config.batch_size,
+            training_iterations=self._config.training_iterations,
+            default_model_file_path=self._config.model_path,
+        )
+
+    def __call__(
+        self,
+        prompt: str,
+        length: int,
+        device: str = "cpu",
+    ) -> typing.Generator[str, None, None]:
+        """
+        Generate text given a prompt.
+        """
+        tokens = self._config.tokenizer.encode(prompt)  # type: ignore[attr-defined]
+        generator = self.model.generate(tokens, k=self._config.top_k, device=device)
+        yield prompt
+        for _ in range(length):
+            try:
+                yield self._config.tokenizer.decode([next(generator)])  # type: ignore[attr-defined]
+            except StopIteration:
+                assert False
+        yield "\n"
+
+    def train(
+        self,
+        device: str,
+    ) -> typing.Generator[float, None, None]:
+        """
+        Train the model.
+        """
+        data_loader = torchdata.DataLoader(self._config.train_dataset, batch_size=self.batch_size, shuffle=True)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self._config.learning_rate)
+        yield from modeltrainer.train_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=self._config.loss_function(reduction="mean"),
+            optimizer=optimizer,
+            device=device,
+        )
+
+    def eval(
+        self,
+        device: str,
+    ) -> dict[str, float]:
+        """
+        Evaluate the model in the validation dataset.
+        """
+        data_loader = torchdata.DataLoader(self._config.val_dataset, batch_size=self.batch_size, shuffle=False)
+        evaluator = modeltrainer.eval_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=self._config.loss_function(reduction="sum"),
+            device=device,
+        )
+
+        total_loss = 0.0
+        total_tokens = 0
+
+        for y_true, _, batch_loss in evaluator:
+            num_tokens = y_true.numel()
+            total_loss += batch_loss.item()
+            total_tokens += num_tokens
+
+        loss = total_loss / total_tokens
+        perplexity = math.exp(loss)
+
+        return {
+            "val loss": loss,
+            "perplexity (PPL)": perplexity,
+        }

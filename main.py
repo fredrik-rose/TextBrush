@@ -30,18 +30,6 @@ ALL_APPLICATIONS = {
     "class": imageclassifier.ImageClassifier,
 }
 
-ALL_TRAINING_ITERATIONS = {
-    "text": textgenerator.TRAINING_ITERATIONS,
-    "image": imagegenerator.TRAINING_ITERATIONS,
-    "class": imageclassifier.TRAINING_ITERATIONS,
-}
-
-ALL_BATCH_SIZES = {
-    "text": textgenerator.BATCH_SIZE,
-    "image": imagegenerator.BATCH_SIZE,
-    "class": imageclassifier.BATCH_SIZE,
-}
-
 
 @contextlib.contextmanager
 def time_it():
@@ -71,9 +59,8 @@ def main() -> None:
     application = ALL_APPLICATIONS[args.application](dataset_name=args.dataset)  # type: ignore[abstract]
 
     if args.train:
-        training_iterations = ALL_TRAINING_ITERATIONS[args.application]
-        num_tokens_in_batch = ALL_BATCH_SIZES[args.application] * application.model.max_num_tokens
-        train_application_model(application, training_iterations, num_tokens_in_batch, device)
+        num_tokens_in_batch = application.batch_size * application.model.max_num_tokens
+        train_application_model(application, application.training_iterations, num_tokens_in_batch, device)
         return
 
     try:

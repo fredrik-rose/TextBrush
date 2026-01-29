@@ -21,10 +21,14 @@ class Application(abc.ABC):
         self,
         dataset: torchdata.Dataset,
         model: nn.Module,
+        batch_size: int,
+        training_iterations: int,
         default_model_file_path: pathlib.Path,
     ):
         self.dataset = dataset
         self.model = model
+        self.batch_size = batch_size
+        self.training_iterations = training_iterations
 
         self._default_model_file_path = default_model_file_path
 
