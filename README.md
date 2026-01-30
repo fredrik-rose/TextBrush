@@ -9,11 +9,11 @@
 
 A project that implements generative machine learning models for text and images. The purpose is to implement important
 and impact-full machine learning architectures and algorithms like Transformers, large language model (LLM),
-generative pre-trained transformer (GPT), vision transformer (ViT), diffusion and contrastive learning. The focus is on
-the core principles, therefore simple and easily trainable datasets like handwritten digits (Mnist) and tiny
-Shakespeare are used. Note however that the implementations are not just simplifications and hacks, it should be
-possible to just scale everything (like model size, datasets and compute) to get really good performance on more
-complex data. This project is partly inspired by the work of Andrej Karpathy.
+generative pre-trained transformer (GPT), vision transformer (ViT), diffusion and contrastive learning. Everything
+from scratch. The focus is on the core principles, therefore simple and easily trainable datasets like handwritten
+digits (Mnist) and tiny Shakespeare are used. Note however that the implementations are not just simplifications and
+hacks, it should be possible to just scale everything (like model size, datasets and compute) to get really good
+performance on more complex data. This project is partly inspired by the work of Andrej Karpathy.
 
 <img src="Images/text_generator.gif" height="600"/>
 
@@ -265,8 +265,7 @@ each time step we scale down the image and add a little bit of Gaussian noise:
 
 where `B` is the variance (controls the strength of the noise) and the noise `e` is sampled from `N(0, I)`.
 
-Adding noise like this is equivalent to sample `x_t` from a conditional normal distribution with mean `sqrt(1-B)*x_t-1`
-and variance `B`:
+Adding noise like this is equivalent to sample `x_t` from a conditional normal distribution:
 
 ![Diffusion2](Images/diffusion_2.png)
 
@@ -302,8 +301,24 @@ The intuition behind this is that by predicting the total noise added we get a s
 image, compared to the direction we would get from just predicting the noise added by the previous step. We then take
 just small step in this direction and randomly move in another direction by adding noise. The reason for adding noise
 is to provide variety, if this is skipped we would end up in the center/average of the training images, resulting in
-low variety blurry images. Note that there are alternatives to this reverse process, DDIM for example gives good result
-even without adding any noise.
+low variety blurry images.
+
+#### DDPM vs DDIM
+
+The reverse process described here is according to DDPM. There is a similar alternative known as DDIM that does not
+add noise as part of the reverse process and can use a large step size, making it much faster. It produces results
+with very similar quality to DDPM. The update step looks as follows:
+
+![DDIM](Images/ddim.png)
+
+where `s` is the step size.
+
+<p>
+  <img src="Images/ddpm.gif" height="100"/>
+  <img src="Images/ddim.gif" height="100"/>
+  <br>
+  <em>DDPM (left) and DDIM (right).</em>
+</p>
 
 ### Noise Schedule
 
@@ -408,12 +423,7 @@ operation. A final convolution layer is applied to produce the noise prediction.
 The diffusion process starts with a noisy image and iteratively uses the noise predictor to remove noise and produce
 a clear image. It uses a condition to control which digit to generate.
 
-<p>
-  <img src="Images/ddpm.gif" height="200"/>
-  <img src="Images/ddim.gif" height="200"/>
-  <br>
-  <em>DDPM (left) and DDIM (right)</em>
-</p>
+<img src="Images/image_generator_demo.gif" height="150"/>
 
 ### Image Classifier
 
