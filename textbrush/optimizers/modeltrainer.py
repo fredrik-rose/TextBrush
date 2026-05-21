@@ -68,7 +68,7 @@ def _model_forward(
     """
     Run the forward pass of a model.
     """
-    if torch.is_tensor(x):  # Single-input model.
+    if isinstance(x, torch.Tensor):  # Single-input model.
         x = x.to(device)
         y_pred = model(x)
     else:  # Multi-input model.

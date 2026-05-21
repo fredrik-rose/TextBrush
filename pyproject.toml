@@ -3,12 +3,23 @@ line-length = 120
 
 [tool.mypy]
 ignore_missing_imports = true
+follow_imports = "skip"
+exclude = [
+    "__pycache__",
+    "\\.git",
+    "\\.mypy_cache",
+    "\\.pixi",
+    "\\.ruff_cache",
+    "\\.vscode",
+    "Images",
+]
 
 [tool.pylint.main]
 max-line-length = 120
 max-args = 15
 max-attributes = 50
 max-locals = 20
+max-positional-arguments = 15
 disable = [
     "bad-inline-option",
     "deprecated-pragma",
@@ -22,4 +33,23 @@ disable = [
     "use-implicit-booleaness-not-comparison-to-zero",
     "use-symbolic-message-instead",
     "useless-suppression",
+]
+ignore = [
+    "__pycache__",
+    ".git",
+    ".mypy_cache",
+    ".pixi",
+    ".ruff_cache",
+    ".vscode",
+    "Images",
+]
+
+[tool.ruff]
+exclude = [
+    "__pycache__",
+    ".git",
+    ".mypy_cache",
+    ".pixi",
+    ".vscode",
+    "Images",
 ]

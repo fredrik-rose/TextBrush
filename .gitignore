@@ -12,6 +12,9 @@ dist/
 # PyCharm
 .idea/
 
+# VS Code
+.vscode/
+
 # Tests
 .cache
 
@@ -21,3 +24,7 @@ dist/
 # Datasets
 textbrush/datasets/data/cifar-10-batches-py
 textbrush/datasets/data/MNIST/
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml

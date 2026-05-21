@@ -19,17 +19,25 @@ performance on more complex data. This project is partly inspired by the work of
 
 ## Usage
 
-This chapter contains example commands.
+### Setup Environment
+
+This project uses the `pixi` package manager: https://pixi.prefix.dev/latest/
 
 ```
-python main.py --help
+pixi install
+pixi run tb --help
 ```
+
+### CUDA
+
+CUDA is needed for running on GPU, to install on WSL follow this guide:
+https://docs.nvidia.com/cuda/wsl-user-guide/index.html#getting-started-with-cuda-on-wsl-2
 
 ### Train the Model
 
 To train the model (neural network) of the application run:
 ```
-python main.py --train <application>
+pixi run tb --train <application>
 ```
 
 To monitor the GPU during training run:
@@ -41,35 +49,35 @@ watch -n 1 nvidia-smi
 
 To generate text (1000 characters with prompt "QUEEN") run:
 ```
-python main.py text -p "QUEEN" -n 1000
+pixi run tb text -p "QUEEN" -n 1000
 ```
 
 ### Generate Images
 
 To generate images (digit 5) run:
 ```
-python main.py image -d 5
+pixi run tb image -d 5
 ```
 
 ### Classify Images
 
 To classify (10) images run:
 ```
-python main.py image -n 10
+pixi run tb image -n 10
 ```
 
 ### Visualize the Model
 
 To visualize the model (neural network) of the application run:
 ```
-python main.py --visualize-model <application>
+pixi run tb --visualize-model <application>
 ```
 
 ### Run Static Code Analyzers
 
 To check all linters run:
 ```
-make lint
+pixi run lint
 ```
 
 ## Datasets
@@ -473,6 +481,9 @@ the model in the correct mode, `model.train()` when doing training and `model.ev
 e.g. inference. Another thing to remember is to use `torch.no_grad()` when gradients are not needed, e.g. during
 evaluation and inference.
 
+Avoid doing things like `.detach().cpu().numpy()`. Try to keep everything on GPU, passing compute bewteen CPU and GPU
+is very expensive as it requires memory move and synchronizations.
+
 Training loop functions often becomes very bloated with a huge parameter list. A neat approach is to implement the
 training loop as a generator and only keeping the absolute minimum in this generator. This can then easily be extended
 as needed. With this approach there are no need for callback functions, logic for storing the models, evaluation
@@ -499,14 +510,11 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 
 ## TODO
 
-* Add requirements.txt
 * Implement FID metric
-* Set random seed?
-* Add learning rate scheduler?
-* Add augmentations?
+* Set random seed
+* Add learning rate scheduler
+* Add augmentations
 * Implement CLIP
 * Text generate Mnist (using CLIP)
 * Text search Mnist (using CLIP)
-* Flash attention
-* Sparse attention
-* Multi-head Latent Attention (MLA)
+* Implement attention versions (flash attention, sparse attention, multi-head latent attention (MLA))

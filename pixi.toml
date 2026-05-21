@@ -1,0 +1,39 @@
+[workspace]
+name = "textbrush"
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["linux-64"]
+
+
+[system-requirements]
+cuda = "13"
+
+
+[dependencies]
+python = ">=3.10,<4"
+
+matplotlib = "*"
+numpy = "*"
+pytorch-gpu = "*"
+torchvision = "*"
+
+cuda-version = "13.*"
+
+black = "*"
+flake8 = "*"
+mypy = "*"
+pylint = "*"
+ruff = "*"
+
+
+[pypi-dependencies]
+torchinfo = "*"
+torchview = "*"
+
+
+[tasks.tb]
+cmd = "python main.py"
+
+
+[tasks.lint]
+cmd = "make lint"
+
