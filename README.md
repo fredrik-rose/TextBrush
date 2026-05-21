@@ -40,9 +40,16 @@ To train the model (neural network) of the application run:
 pixi run tb --train <application>
 ```
 
+Note that you need to set `download=True` in each dataset to allow for data download.
+
 To monitor the GPU during training run:
 ```
 watch -n 1 nvidia-smi
+```
+
+To monitor the CPU during training run:
+```
+htop
 ```
 
 ### Generate Text

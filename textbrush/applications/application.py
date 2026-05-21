@@ -40,6 +40,7 @@ class Application(abc.ABC):
         Save the model.
         """
         model_file_path = self._default_model_file_path if model_file_path is None else model_file_path
+        model_file_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), model_file_path)
 
     def load(

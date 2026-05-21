@@ -28,3 +28,6 @@ textbrush/datasets/data/MNIST/
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+
+# Model weights
+textbrush/applications/weights/

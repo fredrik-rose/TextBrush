@@ -7,6 +7,7 @@ import typing
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch.utils.data as torchdata
 import torchvision
 
@@ -62,7 +63,8 @@ def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
     """
     Convert a CIFAR-10 image tensor to Numpy image.
     """
-    image = tensor.detach().cpu().squeeze().permute(1, 2, 0).numpy()
+    image = F.interpolate(tensor, scale_factor=2, mode="bilinear", align_corners=False)
+    image = image.detach().cpu().squeeze().permute(1, 2, 0).numpy()
     return image
 
 

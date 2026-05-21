@@ -134,17 +134,17 @@ class ImageGeneratorCifar10Config(ImageGeneratorConfig):
 
     patch_size: int = 4
 
-    num_layers: int = 9
+    num_layers: int = 11
     num_heads: int = 8
-    embedded_dimension: int = 256
-    feed_forward_dimension: int = 256 * 4
+    embedded_dimension: int = 512
+    feed_forward_dimension: int = 512 * 4
 
     dropout: float = 0.1
     attention_dropout: float = 0.1
 
-    batch_size: int = 128
+    batch_size: int = 256
     learning_rate: float = 3e-4
-    training_iterations: int = 20000
+    training_iterations: int = 30000
     loss_function: typing.Type[nn.Module] = nn.MSELoss
 
     model_path: pathlib.Path = pathlib.Path(__file__).resolve().parent / "weights" / "image-generator-cifar10.pth"
