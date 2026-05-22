@@ -30,10 +30,6 @@ torchinfo = "*"
 torchview = "*"
 
 
-[tasks.tb]
-cmd = "python main.py"
-
-
-[tasks.lint]
-cmd = "make lint"
-
+[tasks]
+tb = "python main.py"
+lint = "make lint"
