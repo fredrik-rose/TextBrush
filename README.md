@@ -68,9 +68,9 @@ pixi run tb image -d 5
 
 ### Classify Images
 
-To classify (10) images run:
+To classify (5) images run:
 ```
-pixi run tb image -n 10
+pixi run tb class --type object -n 5
 ```
 
 ### Visualize the Model
