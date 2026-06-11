@@ -55,9 +55,12 @@ def main() -> None:
     """
     Entry point.
     """
+    torch.set_float32_matmul_precision("high")  # Use TF32 (8 range bits, 10 mantissa bits).
+
     args, dataset = parse()
     device = get_device()
     application = ALL_APPLICATIONS[args.application](dataset_name=dataset)  # type: ignore[abstract]
+    application.model = torch.compile(application.model, mode="reduce-overhead")
 
     if args.train:
         num_tokens_in_batch = application.batch_size * application.model.max_num_tokens

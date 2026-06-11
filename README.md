@@ -481,22 +481,49 @@ There are several ways to reshape tensors in Torch, with benefits and drawbacks.
 Be careful when relying on broadcast, often manual work (e.g. adding dimensions) is required for it to work out
 properly.
 
-### Optimization
+### Training
 
 Do not forget to zero the gradients for each step in the training `optimizer.zero_grad()`. It is also important to have
 the model in the correct mode, `model.train()` when doing training and `model.eval()` for almost all other use cases,
 e.g. inference. Another thing to remember is to use `torch.no_grad()` when gradients are not needed, e.g. during
 evaluation and inference.
 
-Avoid doing things like `.detach().cpu().numpy()`. Try to keep everything on GPU, passing compute bewteen CPU and GPU
-is very expensive as it requires memory move and synchronizations.
-
 Training loop functions often becomes very bloated with a huge parameter list. A neat approach is to implement the
 training loop as a generator and only keeping the absolute minimum in this generator. This can then easily be extended
 as needed. With this approach there are no need for callback functions, logic for storing the models, evaluation
 handling, logic for early stopping, etc. All of this can be added outside as needed.
 
-### Detach
+### Optimization
+
+#### Data Transfers
+
+Avoid doing things like `.detach().cpu().numpy()`. Try to keep everything on GPU, passing compute bewteen CPU and GPU
+is very expensive as it requires memory move and synchronizations.
+
+#### Reduced Precision
+
+To use a reduced precision for matrix multiplications add this at the top of the application (i.e. before creating
+models etc.):
+```
+torch.set_float32_matmul_precision("high")  # Use TF32 (8 range bits, 10 mantissa bits).
+```
+
+To use BF16 (8 range bits, 7 precision bits), add this to the training loop:
+```
+with torch.autocast(device_type=device, dtype=torch.bfloat16):
+    y_pred = model(x)
+    loss = loss_function(y_pred, y_true)
+```
+Note that this should only be used for forward pass and loss, not backward pass!
+
+#### Compile
+
+To compile the model:
+```
+model = torch.compile(model)
+```
+
+#### Detach
 
 To avoid huge memory leaks during training it is very important to detach the loss tensor from the compute graph. This
 is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append(loss)`.

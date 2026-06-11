@@ -9,20 +9,21 @@ cuda = "13"
 
 
 [dependencies]
-python = ">=3.10,<4"
+python = ">=3.11,<3.13"
 
 matplotlib = "*"
 numpy = "*"
 pytorch-gpu = "*"
 torchvision = "*"
 
-cuda-version = "13.*"
+cuda-version = "13.2.*"
 
 black = "*"
 flake8 = "*"
 mypy = "*"
 pylint = "*"
 ruff = "*"
+cuda-nvcc = ">=13.2.78,<14"
 
 
 [pypi-dependencies]

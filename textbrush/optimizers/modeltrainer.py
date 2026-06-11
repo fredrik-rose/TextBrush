@@ -30,8 +30,9 @@ def train_model(
             model.train()
             optimizer.zero_grad()
             y_true = y_true.to(device)
-            y_pred = _model_forward(model, x, device)
-            loss = loss_function(y_pred, y_true)
+            with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                y_pred = _model_forward(model, x, device)
+                loss = loss_function(y_pred, y_true)
             loss.backward()
             optimizer.step()
             yield loss.item()
@@ -55,8 +56,9 @@ def eval_model(
 
     for x, y_true in data_loader:
         y_true = y_true.to(device)
-        y_pred = _model_forward(model, x, device)
-        loss = loss_function(y_pred, y_true)
+        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            y_pred = _model_forward(model, x, device)
+            loss = loss_function(y_pred, y_true)
         yield y_true, y_pred, loss
 
 
