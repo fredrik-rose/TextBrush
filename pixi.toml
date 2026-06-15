@@ -24,6 +24,7 @@ mypy = "*"
 pylint = "*"
 ruff = "*"
 cuda-nvcc = ">=13.2.78,<14"
+gradio = ">=6.18.0,<7"
 
 
 [pypi-dependencies]

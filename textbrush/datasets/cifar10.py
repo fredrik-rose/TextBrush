@@ -68,6 +68,14 @@ def tensor_to_image(tensor: torch.Tensor) -> np.ndarray:
     return image
 
 
+def normalize(image: np.ndarray) -> np.ndarray:
+    """
+    Normalize a CIFAR-10 image.
+    """
+    image = (image - MEAN) / STD
+    return image
+
+
 def denormalize(image: np.ndarray) -> np.ndarray:
     """
     De-normalize a CIFAR-10 image.

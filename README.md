@@ -69,10 +69,11 @@ pixi run tb image -d 5
 
 ### Classify Images
 
-To classify (5) images run:
+To classify images run:
 ```
-pixi run tb class --type object -n 5
+pixi run tb class
 ```
+Open the URL in a browser and draw a digit.
 
 ### Visualize the Model
 

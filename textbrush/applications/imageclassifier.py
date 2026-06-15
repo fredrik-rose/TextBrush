@@ -7,7 +7,6 @@ import dataclasses
 import pathlib
 import typing
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.utils.data as torchdata
@@ -59,9 +58,9 @@ class ImageClassifierConfig:
 
     @staticmethod
     @abc.abstractmethod
-    def tensor_to_image(x: torch.Tensor) -> np.ndarray:
+    def image_to_tensor(x: np.ndarray) -> torch.Tensor:
         """
-        Convert a tensor to an image.
+        Convert an image to a tensor.
         """
 
 
@@ -116,9 +115,9 @@ class ImageClassifierMnistConfig(ImageClassifierConfig):
         return class_name
 
     @staticmethod
-    def tensor_to_image(x: torch.Tensor) -> np.ndarray:
-        image = mnist.denormalize(mnist.tensor_to_image(x))
-        return image
+    def image_to_tensor(x: np.ndarray) -> torch.Tensor:
+        tensor = torch.tensor(mnist.normalize(x), dtype=torch.float32).unsqueeze(0)
+        return tensor
 
 
 @dataclasses.dataclass
@@ -172,9 +171,9 @@ class ImageClassifierCifar10Config(ImageClassifierConfig):
         return class_name
 
     @staticmethod
-    def tensor_to_image(x: torch.Tensor) -> np.ndarray:
-        image = cifar10.denormalize(cifar10.tensor_to_image(x))
-        return image
+    def image_to_tensor(x: np.ndarray) -> torch.Tensor:
+        tensor = torch.tensor(cifar10.normalize(x), dtype=torch.float32).unsqueeze(0)
+        return tensor
 
 
 class ImageClassifier(application.Application):
@@ -221,28 +220,16 @@ class ImageClassifier(application.Application):
 
     def __call__(
         self,
-        num_images: int,
+        image: np.ndarray,
         device: str = "cpu",
-    ) -> None:
+    ) -> str:
         """
-        Classify images.
+        Classify an image.
         """
-        data_loader = torchdata.DataLoader(
-            self._config.val_dataset,
-            batch_size=1,
-            shuffle=True,
-        )
-        for i, (image_tensor, true_label) in enumerate(data_loader):
-            if i >= num_images:
-                break
-            pred_label = self.model.classify(image_tensor[0], device=device)
-            true_class = self._config.index_to_class(true_label[0].item())
-            pred_class = self._config.index_to_class(pred_label)
-            image = self._config.tensor_to_image(image_tensor)
-            plt.imshow(image, cmap=self._config.cmap)
-            plt.title(f"True: {true_class}, Predicted: {pred_class}")
-            plt.axis("off")
-            plt.show()
+        tensor = self._config.image_to_tensor(image).to(device)
+        pred_label = self.model.classify(tensor, device=device)
+        pred_class = self._config.index_to_class(pred_label)
+        return pred_class
 
     def train(
         self,

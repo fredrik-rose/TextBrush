@@ -8,6 +8,9 @@ import datetime
 import getpass
 import time
 
+import gradio
+import numpy as np
+import PIL
 import torch
 import torch.utils.data as torchdata
 import torchinfo
@@ -95,7 +98,6 @@ def main() -> None:
             )
         case "class":
             classifier(
-                num_images=args.n,
                 application=application,  # type: ignore[arg-type]
                 device=device,
             )
@@ -161,21 +163,7 @@ def parse() -> tuple[argparse.Namespace, str]:
         help=f"object class to generate: {', '.join(cifar10.CLASSES)}",
     )
 
-    image_classifier_parser = subparsers.add_parser("class", help="Image classifier")
-    image_classifier_parser.add_argument(
-        "-n",
-        type=int,
-        help="number of images to classify",
-        default=DEFAULT_NUM_IMAGES,
-    )
-    image_classifier_parser.add_argument(
-        "-t",
-        "--type",
-        type=str,
-        choices=("digit", "object"),
-        help="type to classify",
-        default="digit",
-    )
+    subparsers.add_parser("class", help="Image classifier")
 
     args = parser.parse_args()
 
@@ -185,7 +173,7 @@ def parse() -> tuple[argparse.Namespace, str]:
         case "image":
             dataset = "mnist" if args.digit is not None else "cifar10"
         case "class":
-            dataset = "mnist" if args.type == "digit" else "cifar10"
+            dataset = "mnist"
         case _:
             assert False
 
@@ -313,12 +301,37 @@ def image_generator(
 
 
 def classifier(
-    num_images: int,
     application: imageclassifier.ImageClassifier,
     device: str,
 ) -> None:
     """Run the image classifier application."""
-    application(num_images=num_images, device=device)
+
+    def predict(drawing):
+        if drawing is None or drawing["composite"] is None:
+            return "Please draw a digit!"
+
+        image = drawing["composite"]
+        image = PIL.Image.fromarray(image)
+        image = image.resize((28, 28), PIL.Image.Resampling.LANCZOS)  # Resize to mnist size.
+        image = np.array(image) / 255.0  # Normalize to [0, 1].
+        image = 1.0 - image  # Mnist is white on black.
+
+        pred_class = application(image=image, device=device)
+
+        return pred_class
+
+    interface = gradio.Interface(
+        fn=predict,
+        inputs=gradio.Sketchpad(
+            label="Draw digit here",
+            image_mode="L",
+            layers=False,
+        ),
+        outputs="text",
+        flagging_mode="never",
+        clear_btn=None,
+    )
+    interface.launch()
 
 
 if __name__ == "__main__":
