@@ -90,9 +90,11 @@ def main() -> None:
                 length=args.n,
             )
         case "image":
+            classes = [str(i) for i in range(10)] if dataset == "mnist" else list(cifar10.CLASSES)
             condition = args.digit if dataset == "mnist" else cifar10.class_to_index(args.class_name)
             image_generator(
                 condition=condition,
+                classes=classes,
                 application=application,  # type: ignore[arg-type]
                 device=device,
             )
@@ -293,11 +295,20 @@ def text_generator(
 
 def image_generator(
     condition: int,
+    classes: list[str],
     application: imagegenerator.ImageGenerator,
     device: str,
 ) -> None:
     """Run the image generator application."""
-    application(condition=condition, device=device)
+    while True:
+        application(condition=condition, device=device)
+        next_condition = input(f"Enter new condition ({', '.join(classes)}) or 'q' to quit: ")
+        while next_condition not in classes:
+            if next_condition == "q":
+                return
+            print(f"Invalid: '{next_condition}'")
+            next_condition = input()
+        condition = classes.index(next_condition)
 
 
 def classifier(

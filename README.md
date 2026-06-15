@@ -62,10 +62,11 @@ Press enter to continue generation or `q` to quit.
 
 ### Generate Images
 
-To generate images (digit 5) run:
+To generate an image (digit 5) run:
 ```
 pixi run tb image -d 5
 ```
+Is is also possible to generate certain objects (e.g. `horse` and `car` by using the `-c` flag instead).
 
 ### Classify Images
 
