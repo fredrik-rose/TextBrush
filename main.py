@@ -5,6 +5,7 @@ The text brush entry point.
 import argparse
 import contextlib
 import datetime
+import getpass
 import time
 
 import torch
@@ -79,14 +80,25 @@ def main() -> None:
 
     match args.application:
         case "text":
-            prompt = "\n" if args.prompt is None else args.prompt
-            for char in application(prompt=prompt, length=args.n, device=device):  # type: ignore[operator]
-                print(char, end="", flush=True)
+            text_generator(
+                prompt=args.prompt,
+                application=application,  # type: ignore[arg-type]
+                device=device,
+                length=args.n,
+            )
         case "image":
             condition = args.digit if dataset == "mnist" else cifar10.class_to_index(args.class_name)
-            application(condition=condition, device=device)  # type: ignore[operator]
+            image_generator(
+                condition=condition,
+                application=application,  # type: ignore[arg-type]
+                device=device,
+            )
         case "class":
-            application(num_images=args.n, device=device)  # type: ignore[operator]
+            classifier(
+                num_images=args.n,
+                application=application,  # type: ignore[arg-type]
+                device=device,
+            )
         case _:
             assert False
 
@@ -113,18 +125,20 @@ def parse() -> tuple[argparse.Namespace, str]:
 
     subparsers = parser.add_subparsers(dest="application", help="Application", required=True)
 
-    text_generator_parser = subparsers.add_parser("text", help="Shakespeare text generator")
+    text_generator_parser = subparsers.add_parser(
+        "text",
+        help="Shakespeare text generator, use enter to generate more text, q to quit",
+    )
     text_generator_parser.add_argument(
-        "-p",
-        "--prompt",
-        type=str,
-        help="prompt",
+        "prompt",
+        nargs="?",
         default=None,
+        help="prompt",
     )
     text_generator_parser.add_argument(
         "-n",
         type=int,
-        help="length (number of characters) of text to generate",
+        help="number of characters to generate at a time",
         default=DEFAULT_TEXT_GENERATION_LENGTH,
     )
 
@@ -269,6 +283,42 @@ def visualize_application_model(
         cleanup=True,
     )
     print(f"Stored model visualization at: {output_path}")
+
+
+def text_generator(
+    prompt: str,
+    application: textgenerator.TextGenerator,
+    device: str,
+    length: int,
+) -> None:
+    """Run the text generator application."""
+    prompt = "\n" if prompt is None else prompt
+    counter = 0
+    for char in application(prompt=prompt, device=device):
+        counter += 1
+        print(char, end="", flush=True)
+        if counter % length == 0:
+            char = getpass.getpass(prompt="")
+            if char.lower() == "q":
+                break
+
+
+def image_generator(
+    condition: int,
+    application: imagegenerator.ImageGenerator,
+    device: str,
+) -> None:
+    """Run the image generator application."""
+    application(condition=condition, device=device)
+
+
+def classifier(
+    num_images: int,
+    application: imageclassifier.ImageClassifier,
+    device: str,
+) -> None:
+    """Run the image classifier application."""
+    application(num_images=num_images, device=device)
 
 
 if __name__ == "__main__":

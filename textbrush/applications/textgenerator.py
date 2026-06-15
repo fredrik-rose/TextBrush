@@ -118,7 +118,6 @@ class TextGenerator(application.Application):
     def __call__(
         self,
         prompt: str,
-        length: int,
         device: str = "cpu",
     ) -> typing.Generator[str, None, None]:
         """
@@ -127,12 +126,11 @@ class TextGenerator(application.Application):
         tokens = self._config.tokenizer.encode(prompt)  # type: ignore[attr-defined]
         generator = self.model.generate(tokens, k=self._config.top_k, device=device)
         yield prompt
-        for _ in range(length):
+        while True:
             try:
                 yield self._config.tokenizer.decode([next(generator)])  # type: ignore[attr-defined]
             except StopIteration:
                 assert False
-        yield "\n"
 
     def train(
         self,

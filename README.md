@@ -54,10 +54,11 @@ htop
 
 ### Generate Text
 
-To generate text (1000 characters with prompt "QUEEN") run:
+To generate text (with prompt `QUEEN`) run:
 ```
-pixi run tb text -p "QUEEN" -n 1000
+pixi run tb text "QUEEN"
 ```
+Press enter to continue generation or `q` to quit.
 
 ### Generate Images
 
