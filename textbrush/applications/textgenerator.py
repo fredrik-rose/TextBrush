@@ -12,6 +12,7 @@ import torch.utils.data as torchdata
 
 from torch import nn
 
+from textbrush.algorithms import tokenizer as tok
 from textbrush.datasets import split as dataset_spliter
 from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
@@ -72,7 +73,8 @@ class TextGeneratorTinyShakespeareConfig:
     top_k: int = 10
 
     def __post_init__(self):
-        tokenizer = tinyshakespeare.Tokenizer()
+        vocab = set(tinyshakespeare.load_raw_data())
+        tokenizer = tok.Tokenizer(vocab)
         dataset = tinyshakespeare.TinyShakespeare(
             tokenizer=tokenizer,
             block_size=self.max_tokens,

@@ -9,40 +9,9 @@ import pathlib
 import torch
 import torch.utils.data as torchdata
 
+from textbrush.algorithms import tokenizer as tok
+
 DATASET_FILE_PATH = pathlib.Path(__file__).parent / "data" / "tinyshakespeare.txt"
-
-
-class Tokenizer:
-    """
-    Tiny Shakespeare tokenizer.
-    """
-
-    def __init__(self):
-        text = load_raw_data()
-        vocab = sorted(set(text))
-
-        self.vocab_size = len(vocab)
-
-        self._int_to_token = dict(enumerate(vocab))
-        self._token_to_int = {token: i for i, token in self._int_to_token.items()}
-
-    def encode(
-        self,
-        text: str,
-    ) -> list[int]:
-        """
-        Encode a text string to a list of numbers.
-        """
-        return [self._token_to_int[c] for c in text]
-
-    def decode(
-        self,
-        numbers: list[int],
-    ) -> str:
-        """
-        Decode a list of numbers to a text string.
-        """
-        return "".join(self._int_to_token[i] for i in numbers)
 
 
 class TinyShakespeare(torchdata.Dataset):
@@ -52,7 +21,7 @@ class TinyShakespeare(torchdata.Dataset):
 
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        tokenizer: tok.Tokenizer,
         block_size: int,
     ):
         text = load_raw_data()
