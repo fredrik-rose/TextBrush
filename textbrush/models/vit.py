@@ -23,12 +23,7 @@ class ViT(nn.Module):
         height: int,
         width: int,
         patch_size: int,
-        num_layers: int,
-        num_heads: int,
-        embed_dim: int,
-        feed_forward_dim: int,
-        dropout: float = 0.0,
-        attention_dropout: float = 0.0,
+        config: transformer.TransformerConfig,
     ):
         super().__init__()
 
@@ -39,23 +34,18 @@ class ViT(nn.Module):
 
         self.max_num_tokens = num_tokens
 
-        self._cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # (1, 1, D)
+        self._cls_token = nn.Parameter(torch.zeros(1, 1, config.embed_dim))  # (1, 1, D)
         self._token_embedding = VisionEmbedder(
             in_channels=channels,
             patch_size=patch_size,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
         self._transformer = transformer.Transformer(
             num_tokens=num_tokens,
-            num_layers=num_layers,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            feed_forward_dim=feed_forward_dim,
-            dropout=dropout,
-            attention_dropout=attention_dropout,
+            config=config,
         )
         self._cls_head = nn.Linear(
-            in_features=embed_dim,
+            in_features=config.embed_dim,
             out_features=num_classes,
         )
 

@@ -16,6 +16,7 @@ from textbrush.algorithms import tokenizer as tok
 from textbrush.datasets import split as dataset_spliter
 from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
+from textbrush.models import transformer
 from textbrush.optimizers import modeltrainer
 
 from . import application
@@ -53,13 +54,16 @@ class TextGeneratorTinyShakespeareConfig:
 
     max_tokens: int = 128
 
-    num_layers: int = 6
-    num_heads: int = 4
-    embedded_dimension: int = 256
-    feed_forward_dimension: int = 256 * 4
-
-    dropout: float = 0.2
-    attention_dropout: float = 0.2
+    transformer_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=6,
+            num_heads=4,
+            embed_dim=256,
+            feed_forward_dim=256 * 4,
+            dropout=0.2,
+            attention_dropout=0.2,
+        )
+    )
 
     dataset_split: float = 0.9
 
@@ -101,12 +105,7 @@ class TextGenerator(application.Application):
         model = gpt.GPT(
             vocab_size=self._config.tokenizer.vocab_size,
             num_tokens=self._config.max_tokens,
-            num_layers=self._config.num_layers,
-            num_heads=self._config.num_heads,
-            embed_dim=self._config.embedded_dimension,
-            feed_forward_dim=self._config.feed_forward_dimension,
-            dropout=self._config.dropout,
-            attention_dropout=self._config.attention_dropout,
+            config=self._config.transformer_config,
         )
 
         super().__init__(

@@ -25,12 +25,7 @@ class UViT(nn.Module):
         patch_size: int,
         time_steps: int,
         num_conditions: int,
-        num_layers: int,
-        num_heads: int,
-        embed_dim: int,
-        feed_forward_dim: int,
-        dropout: float = 0.0,
-        attention_dropout: float = 0.0,
+        config: transformer.TransformerConfig,
     ):
         super().__init__()
 
@@ -47,31 +42,23 @@ class UViT(nn.Module):
         self._image_embedder = vit.VisionEmbedder(
             in_channels=channels,
             patch_size=patch_size,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
         self._time_embedder = InputEmbedder(
             num_inputs=time_steps,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
         self._cond_embedder = InputEmbedder(
             num_inputs=num_conditions,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
         self._pos_encoder = transformer.PositionalEncoder(
             num_tokens=num_tokens,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
-        self._unet = UNet(
-            num_layers=num_layers,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            feed_forward_dim=feed_forward_dim,
-            dropout=dropout,
-            attention_dropout=attention_dropout,
-            bias=True,
-        )
+        self._unet = UNet(config=config)
         self._image_unembedder = VisionUnembedder(
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
             channels=channels,
             height_patches=height_patches,
             width_patches=width_patches,
@@ -145,63 +132,57 @@ class UNet(nn.Module):
 
     def __init__(
         self,
-        num_layers: int,
-        embed_dim: int,
-        num_heads: int,
-        feed_forward_dim: int,
-        dropout: float = 0.0,
-        attention_dropout: float = 0.0,
-        bias: bool = True,
+        config: transformer.TransformerConfig,
     ):
-        assert num_layers % 2 == 1
+        assert config.num_layers % 2 == 1
 
         super().__init__()
 
         self._down = nn.ModuleList(
             [
                 transformer.TransformerBlock(
-                    embed_dim=embed_dim,
-                    num_heads=num_heads,
-                    feed_forward_dim=feed_forward_dim,
-                    dropout=dropout,
-                    attention_dropout=attention_dropout,
-                    bias=bias,
+                    embed_dim=config.embed_dim,
+                    num_heads=config.num_heads,
+                    feed_forward_dim=config.feed_forward_dim,
+                    dropout=config.dropout,
+                    attention_dropout=config.attention_dropout,
+                    bias=config.bias,
                 )
-                for _ in range(num_layers // 2)
+                for _ in range(config.num_layers // 2)
             ]
         )
         self._bottleneck = transformer.TransformerBlock(
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            feed_forward_dim=feed_forward_dim,
-            dropout=dropout,
-            attention_dropout=attention_dropout,
-            bias=bias,
+            embed_dim=config.embed_dim,
+            num_heads=config.num_heads,
+            feed_forward_dim=config.feed_forward_dim,
+            dropout=config.dropout,
+            attention_dropout=config.attention_dropout,
+            bias=config.bias,
         )
         self._mergers = nn.ModuleList(
             [
                 TokenMerger(
                     num_sets=2,
-                    embed_dim=embed_dim,
+                    embed_dim=config.embed_dim,
                 )
-                for _ in range(num_layers // 2)
+                for _ in range(config.num_layers // 2)
             ]
         )
         self._up = nn.ModuleList(
             [
                 transformer.TransformerBlock(
-                    embed_dim=embed_dim,
-                    num_heads=num_heads,
-                    feed_forward_dim=feed_forward_dim,
-                    dropout=dropout,
-                    attention_dropout=attention_dropout,
-                    bias=bias,
+                    embed_dim=config.embed_dim,
+                    num_heads=config.num_heads,
+                    feed_forward_dim=config.feed_forward_dim,
+                    dropout=config.dropout,
+                    attention_dropout=config.attention_dropout,
+                    bias=config.bias,
                 )
-                for _ in range(num_layers // 2)
+                for _ in range(config.num_layers // 2)
             ]
         )
         self._norm = transformer.LayerNorm(
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
 
     def forward(  # pylint: disable=missing-function-docstring

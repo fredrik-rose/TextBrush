@@ -2,10 +2,27 @@
 The Transformer model.
 """
 
+import dataclasses
+
 import torch
 import torch.nn.functional as F
 
 from torch import nn
+
+
+@dataclasses.dataclass
+class TransformerConfig:
+    """
+    Transformer configuration.
+    """
+
+    num_layers: int
+    embed_dim: int
+    num_heads: int
+    feed_forward_dim: int
+    dropout: float = 0.0
+    attention_dropout: float = 0.0
+    bias: bool = True
 
 
 class Transformer(nn.Module):
@@ -16,35 +33,29 @@ class Transformer(nn.Module):
     def __init__(
         self,
         num_tokens: int,
-        num_layers: int,
-        embed_dim: int,
-        num_heads: int,
-        feed_forward_dim: int,
-        dropout: float = 0.0,
-        attention_dropout: float = 0.0,
-        bias: bool = True,
+        config: TransformerConfig,
     ):
         super().__init__()
 
         self._pos_encoder = PositionalEncoder(
             num_tokens=num_tokens,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
         self._blocks = nn.ModuleList(
             [
                 TransformerBlock(
-                    embed_dim=embed_dim,
-                    num_heads=num_heads,
-                    feed_forward_dim=feed_forward_dim,
-                    dropout=dropout,
-                    attention_dropout=attention_dropout,
-                    bias=bias,
+                    embed_dim=config.embed_dim,
+                    num_heads=config.num_heads,
+                    feed_forward_dim=config.feed_forward_dim,
+                    dropout=config.dropout,
+                    attention_dropout=config.attention_dropout,
+                    bias=config.bias,
                 )
-                for _ in range(num_layers)
+                for _ in range(config.num_layers)
             ]
         )
         self._norm = LayerNorm(
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
 
     def forward(  # pylint: disable=missing-function-docstring

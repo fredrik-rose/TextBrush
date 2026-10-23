@@ -23,12 +23,7 @@ class GPT(nn.Module):
         self,
         vocab_size: int,
         num_tokens: int,
-        num_layers: int,
-        num_heads: int,
-        embed_dim: int,
-        feed_forward_dim: int,
-        dropout: float = 0.0,
-        attention_dropout: float = 0.0,
+        config: transformer.TransformerConfig,
     ):
         super().__init__()
 
@@ -36,19 +31,14 @@ class GPT(nn.Module):
 
         self._token_embedding = TextEmbedder(
             vocab_size=vocab_size,
-            embed_dim=embed_dim,
+            embed_dim=config.embed_dim,
         )
         self._transformer = transformer.Transformer(
             num_tokens=num_tokens,
-            num_layers=num_layers,
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            feed_forward_dim=feed_forward_dim,
-            dropout=dropout,
-            attention_dropout=attention_dropout,
+            config=config,
         )
         self._lm_head = nn.Linear(
-            in_features=embed_dim,
+            in_features=config.embed_dim,
             out_features=vocab_size,
         )
 

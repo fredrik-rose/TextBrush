@@ -18,6 +18,7 @@ from torchvision.transforms import v2
 from textbrush.algorithms import diffusion
 from textbrush.datasets import cifar10
 from textbrush.datasets import mnist
+from textbrush.models import transformer
 from textbrush.models import uvit
 from textbrush.optimizers import modeltrainer
 
@@ -38,13 +39,7 @@ class ImageGeneratorConfig:
 
     patch_size: int
 
-    num_layers: int
-    num_heads: int
-    embedded_dimension: int
-    feed_forward_dimension: int
-
-    dropout: float
-    attention_dropout: float
+    transformer_config: transformer.TransformerConfig
 
     batch_size: int
     learning_rate: float
@@ -78,13 +73,16 @@ class ImageGeneratorMnistConfig(ImageGeneratorConfig):
 
     patch_size: int = 4
 
-    num_layers: int = 9
-    num_heads: int = 8
-    embedded_dimension: int = 256
-    feed_forward_dimension: int = 256 * 4
-
-    dropout: float = 0.1
-    attention_dropout: float = 0.1
+    transformer_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=9,
+            num_heads=8,
+            embed_dim=256,
+            feed_forward_dim=256 * 4,
+            dropout=0.1,
+            attention_dropout=0.1,
+        )
+    )
 
     batch_size: int = 128
     learning_rate: float = 3e-4
@@ -134,13 +132,16 @@ class ImageGeneratorCifar10Config(ImageGeneratorConfig):
 
     patch_size: int = 4
 
-    num_layers: int = 11
-    num_heads: int = 8
-    embedded_dimension: int = 512
-    feed_forward_dimension: int = 512 * 4
-
-    dropout: float = 0.1
-    attention_dropout: float = 0.1
+    transformer_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=11,
+            num_heads=8,
+            embed_dim=512,
+            feed_forward_dim=512 * 4,
+            dropout=0.1,
+            attention_dropout=0.1,
+        )
+    )
 
     batch_size: int = 256
     learning_rate: float = 3e-4
@@ -217,12 +218,7 @@ class ImageGenerator(application.Application):
             patch_size=self._config.patch_size,
             time_steps=len(self._betas),
             num_conditions=self._config.num_classes,
-            num_layers=self._config.num_layers,
-            num_heads=self._config.num_heads,
-            embed_dim=self._config.embedded_dimension,
-            feed_forward_dim=self._config.feed_forward_dimension,
-            dropout=self._config.dropout,
-            attention_dropout=self._config.attention_dropout,
+            config=self._config.transformer_config,
         )
 
         super().__init__(

@@ -16,6 +16,7 @@ from torchvision.transforms import v2
 
 from textbrush.datasets import cifar10
 from textbrush.datasets import mnist
+from textbrush.models import transformer
 from textbrush.models import vit
 from textbrush.optimizers import modeltrainer
 
@@ -32,13 +33,7 @@ class ImageClassifierConfig:
 
     patch_size: int
 
-    num_layers: int
-    num_heads: int
-    embedded_dimension: int
-    feed_forward_dimension: int
-
-    dropout: float
-    attention_dropout: float
+    transformer_config: transformer.TransformerConfig
 
     batch_size: int
     learning_rate: float
@@ -74,13 +69,16 @@ class ImageClassifierMnistConfig(ImageClassifierConfig):
 
     patch_size: int = 4
 
-    num_layers: int = 6
-    num_heads: int = 4
-    embedded_dimension: int = 256
-    feed_forward_dimension: int = 256 * 4
-
-    dropout: float = 0.2
-    attention_dropout: float = 0.2
+    transformer_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=6,
+            num_heads=4,
+            embed_dim=256,
+            feed_forward_dim=256 * 4,
+            dropout=0.2,
+            attention_dropout=0.2,
+        )
+    )
 
     batch_size: int = 128
     learning_rate: float = 3e-4
@@ -130,13 +128,16 @@ class ImageClassifierCifar10Config(ImageClassifierConfig):
 
     patch_size: int = 4
 
-    num_layers: int = 6
-    num_heads: int = 4
-    embedded_dimension: int = 256
-    feed_forward_dimension: int = 256 * 4
-
-    dropout: float = 0.2
-    attention_dropout: float = 0.2
+    transformer_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=6,
+            num_heads=4,
+            embed_dim=256,
+            feed_forward_dim=256 * 4,
+            dropout=0.2,
+            attention_dropout=0.2,
+        )
+    )
 
     batch_size: int = 128
     learning_rate: float = 3e-4
@@ -202,12 +203,7 @@ class ImageClassifier(application.Application):
             height=height,
             width=width,
             patch_size=self._config.patch_size,
-            num_layers=self._config.num_layers,
-            num_heads=self._config.num_heads,
-            embed_dim=self._config.embedded_dimension,
-            feed_forward_dim=self._config.feed_forward_dimension,
-            dropout=self._config.dropout,
-            attention_dropout=self._config.attention_dropout,
+            config=self._config.transformer_config,
         )
 
         super().__init__(
