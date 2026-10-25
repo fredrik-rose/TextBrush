@@ -257,10 +257,25 @@ class ImageClassifier(application.Application):
             image_encoder=image_encoder,
         )
 
+        self._train_dataset = Dataset(
+            dataset=self._config.train_dataset,
+            prefix=self._config.prefix,
+            class_names=self._config.class_names,
+            tokenizer=self._tokenizer,
+            num_tokens=self._config.max_tokens,
+        )
+        self._val_dataset = Dataset(
+            dataset=self._config.val_dataset,
+            prefix=self._config.prefix,
+            class_names=self._config.class_names,
+            tokenizer=self._tokenizer,
+            num_tokens=self._config.max_tokens,
+        )
+
         self._class_embeddings = None
 
         super().__init__(
-            dataset=self._config.val_dataset,
+            dataset=self._val_dataset,
             model=model,
             batch_size=self._config.batch_size,
             training_iterations=self._config.training_iterations,
@@ -297,14 +312,7 @@ class ImageClassifier(application.Application):
         Train the model.
         """
         self._class_embeddings = None
-        dataset = Dataset(
-            dataset=self._config.train_dataset,
-            prefix=self._config.prefix,
-            class_names=self._config.class_names,
-            tokenizer=self._tokenizer,
-            num_tokens=self._config.max_tokens,
-        )
-        data_loader = torchdata.DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        data_loader = torchdata.DataLoader(self._train_dataset, batch_size=self.batch_size, shuffle=False)
         loss_function = Loss(logit_scale=self.model.logit_scale, reduction="mean")
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self._config.learning_rate)
         yield from modeltrainer.train_model(
@@ -322,14 +330,7 @@ class ImageClassifier(application.Application):
         """
         Evaluate the model on the validation dataset.
         """
-        dataset = Dataset(
-            dataset=self._config.val_dataset,
-            prefix=self._config.prefix,
-            class_names=self._config.class_names,
-            tokenizer=self._tokenizer,
-            num_tokens=self._config.max_tokens,
-        )
-        data_loader = torchdata.DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        data_loader = torchdata.DataLoader(self._val_dataset, batch_size=self.batch_size, shuffle=False)
         loss_function = Loss(logit_scale=self.model.logit_scale, reduction="sum")
         evaluator = modeltrainer.eval_model(
             model=self.model,
