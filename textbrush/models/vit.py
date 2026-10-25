@@ -70,17 +70,16 @@ class ViT(nn.Module):
         self,
         image: torch.Tensor,
         device: str = "cpu",
-    ) -> int:
+    ) -> torch.Tensor:
         """
         Classify an image.
         """
         image = image.to(device)
         self.to(device)
         self.eval()
-        logits = self(image.unsqueeze(0))
-        probs = F.softmax(logits[0], dim=-1)
-        class_index = torch.argmax(probs)
-        return int(class_index.item())
+        logits = self(image)
+        probs = F.softmax(logits, dim=-1)
+        return probs
 
 
 class VisionEmbedder(nn.Module):
