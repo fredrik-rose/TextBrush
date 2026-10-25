@@ -553,7 +553,4 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 * Set random seed
 * Add learning rate scheduler
 * Add augmentations
-* Implement CLIP
-* Text generate Mnist (using CLIP)
-* Text search Mnist (using CLIP)
-* Implement attention versions (flash attention, sparse attention, multi-head latent attention (MLA))
+* Implement attention versions (flash attention, sparse attention, grouped-query attention)

@@ -22,6 +22,7 @@ from textbrush.models import bert
 from textbrush.models import clip
 from textbrush.models import transformer
 from textbrush.models import vit
+from textbrush.optimizers import losses
 from textbrush.optimizers import modeltrainer
 
 from . import application
@@ -293,16 +294,71 @@ class ImageClassifier(application.Application):
         """
         Train the model.
         """
-        raise NotImplementedError("Training is not implemented for the image classifier.")
+        self._class_embeddings = None
+        dataset = Dataset(
+            dataset=self._config.train_dataset,
+            tokenizer=self._tokenizer,
+            prefix=self._config.prefix,
+            class_names=self._config.class_names,
+        )
+        data_loader = torchdata.DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        loss_function = Loss(logit_scale=self.model.logit_scale, reduction="mean")
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self._config.learning_rate)
+        yield from modeltrainer.train_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=loss_function,
+            optimizer=optimizer,
+            device=device,
+        )
 
     def eval(
         self,
         device: str,
     ) -> dict[str, float]:
         """
-        Evaluate the model in the validation dataset.
+        Evaluate the model on the validation dataset.
         """
-        raise NotImplementedError("Evaluation is not implemented for the image classifier.")
+        dataset = Dataset(
+            dataset=self._config.val_dataset,
+            tokenizer=self._tokenizer,
+            prefix=self._config.prefix,
+            class_names=self._config.class_names,
+        )
+        data_loader = torchdata.DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        loss_function = Loss(logit_scale=self.model.logit_scale, reduction="sum")
+        evaluator = modeltrainer.eval_model(
+            model=self.model,
+            data_loader=data_loader,
+            loss_function=loss_function,
+            device=device,
+        )
+
+        class_embeddings = self._get_class_embeddings(device)
+
+        total_loss = 0.0
+        total_correct = 0.0
+        total_samples = 0
+
+        for x, y_true, _, batch_loss in evaluator:
+            batch_size = y_true.size(0)
+            probs = self.model.classify(
+                image=x["image"],
+                class_embeddings=class_embeddings,
+                device=device,
+            )
+            class_indexes = torch.argmax(probs, dim=-1)
+            total_correct += (class_indexes == y_true).sum().item()
+            total_samples += batch_size
+            total_loss += batch_loss.item()
+
+        loss = total_loss / total_samples
+        accuracy = (total_correct / total_samples) * 100
+
+        return {
+            "val loss": loss,
+            "accuracy": accuracy,
+        }
 
     def _get_class_embeddings(
         self,
@@ -319,3 +375,57 @@ class ImageClassifier(application.Application):
                 embeddings.append(class_embedding)
             embeddings = torch.vstack(embeddings)
             return embeddings
+
+
+class Dataset(torchdata.Dataset):
+    """
+    CLIP dataset wrapper.
+    """
+
+    def __init__(
+        self,
+        dataset: torchdata.Dataset,
+        tokenizer: tok.Tokenizer,
+        prefix: str,
+        class_names: tuple[str, ...],
+        padding_char: str = "*",
+    ):
+        self._dataset = dataset
+        self._tokenizer = tokenizer
+        self._prefix = prefix
+        self._class_names = class_names
+        self._padding = max(len(name) for name in class_names)
+        self._padding_char = padding_char
+
+    def __len__(self):
+        return len(self._dataset)
+
+    def __getitem__(
+        self,
+        idx: int,
+    ) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
+        image, label = self._dataset[idx]
+        class_name = self._class_names[label].ljust(self._padding, self._padding_char)
+        text = torch.tensor(self._tokenizer.encode(f"{self._prefix} {class_name}"))
+        return {"text": text, "image": image}, label
+
+
+class Loss(nn.Module):
+    """
+    CLIP loss wrapper.
+    """
+
+    def __init__(
+        self,
+        logit_scale: nn.Parameter,
+        reduction: str,
+    ):
+        super().__init__()
+        self._loss = losses.InfoNCE(logit_scale=logit_scale, reduction=reduction)
+
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        y_pred: torch.Tensor,
+        _: torch.Tensor,
+    ) -> torch.Tensor:
+        return self._loss(y_pred[0], y_pred[1])

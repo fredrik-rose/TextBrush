@@ -287,7 +287,7 @@ class ImageGenerator(application.Application):
         total_loss = 0.0
         total_pixels = 0
 
-        for y_true, _, batch_loss in evaluator:
+        for _, y_true, _, batch_loss in evaluator:
             batch_size = y_true.numel()
             total_pixels += batch_size
             total_loss += batch_loss.item()

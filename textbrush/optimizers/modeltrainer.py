@@ -47,7 +47,7 @@ def eval_model(
     data_loader: torchdata.DataLoader,
     loss_function: nn.Module,
     device: str,
-) -> typing.Generator[tuple[torch.Tensor, torch.Tensor, torch.Tensor], None, None]:
+) -> typing.Generator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], None, None]:
     """
     Evaluate a model.
     """
@@ -59,7 +59,7 @@ def eval_model(
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
             y_pred = _model_forward(model, x, device)
             loss = loss_function(y_pred, y_true)
-        yield y_true, y_pred, loss
+        yield x, y_true, y_pred, loss
 
 
 def _model_forward(

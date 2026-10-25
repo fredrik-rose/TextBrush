@@ -145,7 +145,7 @@ class TextGenerator(application.Application):
         total_loss = 0.0
         total_tokens = 0
 
-        for y_true, _, batch_loss in evaluator:
+        for _, y_true, _, batch_loss in evaluator:
             num_tokens = y_true.numel()
             total_loss += batch_loss.item()
             total_tokens += num_tokens
