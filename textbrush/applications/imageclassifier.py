@@ -81,7 +81,7 @@ class ImageClassifierMnistConfig(ImageClassifierConfig):
     representation_dim: int = 128
 
     prefix: str = "a handwritten digit"
-    max_tokens: int = 128
+    max_tokens: int = 127
     text_encoder_config: transformer.TransformerConfig = dataclasses.field(
         default_factory=lambda: transformer.TransformerConfig(
             num_layers=6,
@@ -153,7 +153,7 @@ class ImageClassifierCifar10Config(ImageClassifierConfig):
     representation_dim: int = 128
 
     prefix: str = "a photo of a"
-    max_tokens: int = 128
+    max_tokens: int = 127
     text_encoder_config: transformer.TransformerConfig = dataclasses.field(
         default_factory=lambda: transformer.TransformerConfig(
             num_layers=6,
@@ -398,7 +398,7 @@ class Dataset(torchdata.Dataset):
         self._prefix = prefix
         self._class_names = class_names
         self._tokenizer = tokenizer
-        self._num_tokens = num_tokens - 1  # To fit CLS token.
+        self._num_tokens = num_tokens
 
     def __len__(self):
         return len(self._dataset)
@@ -415,7 +415,9 @@ class Dataset(torchdata.Dataset):
         pad_token = self._tokenizer.encode(_PAD_TOKEN)
         tokens += pad_token * (self._num_tokens - num_valid_tokens)
         tokens = torch.tensor(tokens)
-        return {"text": tokens, "image": image}, label
+        mask = torch.zeros(self._num_tokens)
+        mask[:num_valid_tokens] = 1.0
+        return {"text": tokens, "image": image, "text_mask": mask}, label
 
 
 class Loss(nn.Module):

@@ -26,7 +26,7 @@ class BERT(nn.Module):
     ):
         super().__init__()
 
-        self.max_num_tokens = num_tokens
+        self.max_num_tokens = num_tokens + 1
 
         self._cls_token = nn.Parameter(torch.zeros(1, 1, config.embed_dim))  # (1, 1, D)
         self._token_embedding = gpt.TextEmbedder(
@@ -34,7 +34,7 @@ class BERT(nn.Module):
             embed_dim=config.embed_dim,
         )
         self._transformer = transformer.Transformer(
-            num_tokens=num_tokens,
+            num_tokens=self.max_num_tokens,
             config=config,
         )
         self._representation_head = nn.Linear(
@@ -54,7 +54,9 @@ class BERT(nn.Module):
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         x = self._token_embedding(x)  # (B, T) -> (B, T, D)
+        if mask is not None:
+            x = x * mask.unsqueeze(-1)  # Zero out padding tokens.
         x = torch.cat([self._cls_token.expand(x.size(0), -1, -1), x], dim=1)  # (B, T, D) -> (B, T+1, D)
-        x = self._transformer(x, mask)  # (B, T+1, D)
+        x = self._transformer(x)  # (B, T+1, D)
         x = self._representation_head(x[:, 0, :])  # (B, D) -> (B, R)
         return x
