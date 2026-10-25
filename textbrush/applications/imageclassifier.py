@@ -27,6 +27,8 @@ from textbrush.optimizers import modeltrainer
 
 from . import application
 
+_PAD_TOKEN = "*"
+
 
 @dataclasses.dataclass
 class ImageClassifierConfig:
@@ -231,7 +233,7 @@ class ImageClassifier(application.Application):
             case _:
                 assert False
 
-        vocab = list(string.ascii_lowercase + string.punctuation + " ")
+        vocab = list(string.ascii_lowercase + " " + _PAD_TOKEN)
         self._tokenizer = tok.Tokenizer(vocab)
         text_encoder = bert.BERT(
             vocab_size=self._tokenizer.vocab_size,
@@ -297,9 +299,10 @@ class ImageClassifier(application.Application):
         self._class_embeddings = None
         dataset = Dataset(
             dataset=self._config.train_dataset,
-            tokenizer=self._tokenizer,
             prefix=self._config.prefix,
             class_names=self._config.class_names,
+            tokenizer=self._tokenizer,
+            num_tokens=self._config.max_tokens,
         )
         data_loader = torchdata.DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         loss_function = Loss(logit_scale=self.model.logit_scale, reduction="mean")
@@ -321,9 +324,10 @@ class ImageClassifier(application.Application):
         """
         dataset = Dataset(
             dataset=self._config.val_dataset,
-            tokenizer=self._tokenizer,
             prefix=self._config.prefix,
             class_names=self._config.class_names,
+            tokenizer=self._tokenizer,
+            num_tokens=self._config.max_tokens,
         )
         data_loader = torchdata.DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         loss_function = Loss(logit_scale=self.model.logit_scale, reduction="sum")
@@ -385,17 +389,16 @@ class Dataset(torchdata.Dataset):
     def __init__(
         self,
         dataset: torchdata.Dataset,
-        tokenizer: tok.Tokenizer,
         prefix: str,
         class_names: tuple[str, ...],
-        padding_char: str = "*",
+        tokenizer: tok.Tokenizer,
+        num_tokens: int,
     ):
         self._dataset = dataset
-        self._tokenizer = tokenizer
         self._prefix = prefix
         self._class_names = class_names
-        self._padding = max(len(name) for name in class_names)
-        self._padding_char = padding_char
+        self._tokenizer = tokenizer
+        self._num_tokens = num_tokens - 1  # To fit CLS token.
 
     def __len__(self):
         return len(self._dataset)
@@ -405,9 +408,14 @@ class Dataset(torchdata.Dataset):
         idx: int,
     ) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
         image, label = self._dataset[idx]
-        class_name = self._class_names[label].ljust(self._padding, self._padding_char)
-        text = torch.tensor(self._tokenizer.encode(f"{self._prefix} {class_name}"))
-        return {"text": text, "image": image}, label
+        class_name = self._class_names[label]
+        text = f"{self._prefix} {class_name}"
+        tokens = self._tokenizer.encode(text)
+        num_valid_tokens = len(tokens)
+        pad_token = self._tokenizer.encode(_PAD_TOKEN)
+        tokens += pad_token * (self._num_tokens - num_valid_tokens)
+        tokens = torch.tensor(tokens)
+        return {"text": tokens, "image": image}, label
 
 
 class Loss(nn.Module):
