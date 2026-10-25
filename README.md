@@ -536,6 +536,7 @@ is done via `.item()` or `.detach()`. Code like this is very bad: `losses.append
 - Attention Is All You Need (Transformer): https://arxiv.org/abs/1706.03762
 - An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale (ViT): https://arxiv.org/abs/2010.11929
 - Language Models are Few-Shot Learners (GPT): https://arxiv.org/abs/2005.14165
+- Pre-training of Deep Bidirectional Transformers for Language Understanding (BERT): https://arxiv.org/abs/1810.04805
 - Denoising Diffusion Probabilistic Models (DDPM): https://arxiv.org/abs/2006.11239
 - Denoising Diffusion Implicit Models (DDIM): https://arxiv.org/abs/2010.02502
 - Classifier-Free Diffusion Guidance: https://arxiv.org/abs/2207.12598
