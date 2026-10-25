@@ -17,33 +17,10 @@ from textbrush.datasets import split as dataset_spliter
 from textbrush.datasets import tinyshakespeare
 from textbrush.models import gpt
 from textbrush.models import transformer
+from textbrush.optimizers import losses
 from textbrush.optimizers import modeltrainer
 
 from . import application
-
-
-class FlattenedCrossEntropy(nn.Module):
-    """
-    Adjust dimensions to use the ordinary cross entropy loss.
-    """
-
-    def __init__(
-        self,
-        reduction: str,
-    ):
-        super().__init__()
-
-        self._loss = nn.CrossEntropyLoss(reduction=reduction)
-
-    def forward(  # pylint: disable=missing-function-docstring
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor,
-    ) -> torch.Tensor:
-        batch, tokens, classes = y_pred.shape
-        y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
-        y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
-        return self._loss(y_pred, y_true)
 
 
 @dataclasses.dataclass
@@ -70,7 +47,7 @@ class TextGeneratorTinyShakespeareConfig:
     batch_size: int = 64
     learning_rate: float = 3e-4
     training_iterations: int = 5000
-    loss_function: typing.Type[nn.Module] = FlattenedCrossEntropy
+    loss_function: typing.Type[nn.Module] = losses.FlattenedCrossEntropy
 
     model_path: pathlib.Path = pathlib.Path(__file__).resolve().parent / "weights" / "text-generator.pth"
 

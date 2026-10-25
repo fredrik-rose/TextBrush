@@ -8,6 +8,30 @@ import torch.nn.functional as F
 from torch import nn
 
 
+class FlattenedCrossEntropy(nn.Module):
+    """
+    Adjust dimensions to use the ordinary cross entropy loss.
+    """
+
+    def __init__(
+        self,
+        reduction: str,
+    ):
+        super().__init__()
+
+        self._loss = nn.CrossEntropyLoss(reduction=reduction)
+
+    def forward(  # pylint: disable=missing-function-docstring
+        self,
+        y_pred: torch.Tensor,
+        y_true: torch.Tensor,
+    ) -> torch.Tensor:
+        batch, tokens, classes = y_pred.shape
+        y_pred = y_pred.reshape(batch * tokens, classes)  # (B, T, C) -> (B*T, C)
+        y_true = y_true.reshape(batch * tokens)  # (B, T) -> (B*T)
+        return self._loss(y_pred, y_true)
+
+
 class InfoNCE(nn.Module):
     """
     InfoNCE loss function, a contrasstive loss function used in self-supervised learning.
