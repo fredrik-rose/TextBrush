@@ -5,6 +5,7 @@ Image classifier.
 import abc
 import dataclasses
 import pathlib
+import string
 import typing
 
 import numpy as np
@@ -14,8 +15,11 @@ import torch.utils.data as torchdata
 from torch import nn
 from torchvision.transforms import v2
 
+from textbrush.algorithms import tokenizer as tok
 from textbrush.datasets import cifar10
 from textbrush.datasets import mnist
+from textbrush.models import bert
+from textbrush.models import clip
 from textbrush.models import transformer
 from textbrush.models import vit
 from textbrush.optimizers import modeltrainer
@@ -30,15 +34,19 @@ class ImageClassifierConfig:
     """
 
     num_classes: int
+    class_names: tuple[str, ...]
+    representation_dim: int
+
+    prefix: str
+    max_tokens: int
+    text_encoder_config: transformer.TransformerConfig
 
     patch_size: int
-
-    transformer_config: transformer.TransformerConfig
+    image_encoder_config: transformer.TransformerConfig
 
     batch_size: int
     learning_rate: float
     training_iterations: int
-    loss_function: typing.Type[nn.Module]
 
     model_path: pathlib.Path
 
@@ -66,10 +74,24 @@ class ImageClassifierMnistConfig(ImageClassifierConfig):
     """
 
     num_classes: int = 10
+    class_names: tuple[str, ...] = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+    representation_dim: int = 128
+
+    prefix: str = "a handwritten digit"
+    max_tokens: int = 128
+    text_encoder_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=6,
+            num_heads=4,
+            embed_dim=256,
+            feed_forward_dim=256 * 4,
+            dropout=0.2,
+            attention_dropout=0.2,
+        )
+    )
 
     patch_size: int = 4
-
-    transformer_config: transformer.TransformerConfig = dataclasses.field(
+    image_encoder_config: transformer.TransformerConfig = dataclasses.field(
         default_factory=lambda: transformer.TransformerConfig(
             num_layers=6,
             num_heads=4,
@@ -83,7 +105,6 @@ class ImageClassifierMnistConfig(ImageClassifierConfig):
     batch_size: int = 128
     learning_rate: float = 3e-4
     training_iterations: int = 5000
-    loss_function: typing.Type[nn.Module] = nn.CrossEntropyLoss
 
     model_path: pathlib.Path = pathlib.Path(__file__).resolve().parent / "weights" / "image-classifier-mnist.pth"
 
@@ -125,10 +146,24 @@ class ImageClassifierCifar10Config(ImageClassifierConfig):
     """
 
     num_classes: int = 10
+    class_names: tuple[str, ...] = cifar10.CLASSES
+    representation_dim: int = 128
+
+    prefix: str = "a photo of a"
+    max_tokens: int = 128
+    text_encoder_config: transformer.TransformerConfig = dataclasses.field(
+        default_factory=lambda: transformer.TransformerConfig(
+            num_layers=6,
+            num_heads=4,
+            embed_dim=256,
+            feed_forward_dim=256 * 4,
+            dropout=0.2,
+            attention_dropout=0.2,
+        )
+    )
 
     patch_size: int = 4
-
-    transformer_config: transformer.TransformerConfig = dataclasses.field(
+    image_encoder_config: transformer.TransformerConfig = dataclasses.field(
         default_factory=lambda: transformer.TransformerConfig(
             num_layers=6,
             num_heads=4,
@@ -142,7 +177,6 @@ class ImageClassifierCifar10Config(ImageClassifierConfig):
     batch_size: int = 128
     learning_rate: float = 3e-4
     training_iterations: int = 5000
-    loss_function: typing.Type[nn.Module] = nn.CrossEntropyLoss
 
     model_path: pathlib.Path = pathlib.Path(__file__).resolve().parent / "weights" / "image-classifier-cifar10.pth"
 
@@ -179,7 +213,7 @@ class ImageClassifierCifar10Config(ImageClassifierConfig):
 
 class ImageClassifier(application.Application):
     """
-    Image classifier using ViT model as backend.
+    Image classifier using the CLIP approach.
     """
 
     _config: typing.Union[ImageClassifierMnistConfig, ImageClassifierCifar10Config]
@@ -196,15 +230,31 @@ class ImageClassifier(application.Application):
             case _:
                 assert False
 
+        vocab = list(string.ascii_lowercase + string.punctuation + " ")
+        self._tokenizer = tok.Tokenizer(vocab)
+        text_encoder = bert.BERT(
+            vocab_size=self._tokenizer.vocab_size,
+            num_tokens=self._config.max_tokens,
+            config=self._config.text_encoder_config,
+            representation_dim=self._config.representation_dim,
+        )
+
         channels, height, width = self._config.train_dataset[0][0].shape
-        model = vit.ViT(
-            num_classes=self._config.num_classes,
+        image_encoder = vit.ViT(
+            num_classes=self._config.representation_dim,
             channels=channels,
             height=height,
             width=width,
             patch_size=self._config.patch_size,
-            config=self._config.transformer_config,
+            config=self._config.image_encoder_config,
         )
+
+        model = clip.CLIP(
+            text_encoder=text_encoder,
+            image_encoder=image_encoder,
+        )
+
+        self._class_embeddings = None
 
         super().__init__(
             dataset=self._config.val_dataset,
@@ -222,9 +272,18 @@ class ImageClassifier(application.Application):
         """
         Classify an image.
         """
-        tensor = self._config.image_to_tensor(image).to(device)
-        pred_label = self.model.classify(tensor, device=device)
-        pred_class = self._config.index_to_class(pred_label)
+        if self._class_embeddings is None:
+            self._class_embeddings = self._get_class_embeddings(device)
+
+        image = self._config.image_to_tensor(image).unsqueeze(0)
+        probs = self.model.classify(
+            image=image,
+            class_embeddings=self._class_embeddings,
+            device=device,
+        )
+        class_index = int(torch.argmax(probs, dim=-1).item())
+        pred_class = self._config.index_to_class(class_index)
+
         return pred_class
 
     def train(
@@ -234,15 +293,7 @@ class ImageClassifier(application.Application):
         """
         Train the model.
         """
-        data_loader = torchdata.DataLoader(self._config.train_dataset, batch_size=self.batch_size, shuffle=True)
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self._config.learning_rate)
-        yield from modeltrainer.train_model(
-            model=self.model,
-            data_loader=data_loader,
-            loss_function=self._config.loss_function(reduction="mean"),
-            optimizer=optimizer,
-            device=device,
-        )
+        raise NotImplementedError("Training is not implemented for the image classifier.")
 
     def eval(
         self,
@@ -251,29 +302,20 @@ class ImageClassifier(application.Application):
         """
         Evaluate the model in the validation dataset.
         """
-        data_loader = torchdata.DataLoader(self._config.val_dataset, batch_size=self.batch_size, shuffle=False)
-        evaluator = modeltrainer.eval_model(
-            model=self.model,
-            data_loader=data_loader,
-            loss_function=self._config.loss_function(reduction="sum"),
-            device=device,
-        )
+        raise NotImplementedError("Evaluation is not implemented for the image classifier.")
 
-        total_loss = 0.0
-        total_correct = 0.0
-        total_samples = 0
-
-        for y_true, y_pred, batch_loss in evaluator:
-            batch_size = y_true.size(0)
-            y_pred = torch.argmax(y_pred, dim=-1)
-            total_correct += (y_pred == y_true).sum().item()
-            total_samples += batch_size
-            total_loss += batch_loss.item()
-
-        loss = total_loss / total_samples
-        accuracy = (total_correct / total_samples) * 100
-
-        return {
-            "val loss": loss,
-            "accuracy": accuracy,
-        }
+    def _get_class_embeddings(
+        self,
+        device: str,
+    ) -> torch.Tensor:
+        self.model.eval()
+        self.model.to(device)
+        with torch.no_grad():
+            embeddings = []
+            for class_name in self._config.class_names:
+                text = self._tokenizer.encode(f"{self._config.prefix} {class_name}")
+                tokens = torch.tensor(text, dtype=torch.long, device=device).unsqueeze(0)
+                class_embedding, _ = self.model(text=tokens, image=None)
+                embeddings.append(class_embedding)
+            embeddings = torch.vstack(embeddings)
+            return embeddings

@@ -64,7 +64,7 @@ def main() -> None:
     args, dataset = parse()
     device = get_device()
     application = ALL_APPLICATIONS[args.application](dataset_name=dataset)  # type: ignore[abstract]
-    application.model = torch.compile(application.model, mode="reduce-overhead")
+    application.model = torch.compile(application.model, mode="default")
 
     if args.train:
         num_tokens_in_batch = application.batch_size * application.model.max_num_tokens
