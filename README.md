@@ -380,6 +380,15 @@ To sample, i.e. generate an image, reverse diffusion is used with the following 
 
 ![Diffusion8](Images/diffusion_8.png)
 
+## Contrastive Learning
+
+Contrastive learning is a representation-learning technique that trains a model to recognize similarities and
+differences between data points. Instead of relying solely on fixed labels, as in standard classification, it learns by
+comparing examples directly. This often produces richer semantic representations because the model is encouraged to
+understand why two samples should be considered similar or distinct. As a result, contrastive objectives can provide a
+stronger learning signal than traditional label‑based supervision. It is often used for semi‑supervised and unsupervised
+training tasks, where explicit labels are limited or unavailable.
+
 ## Applications
 
 This chapter describes the applications.
@@ -445,17 +454,39 @@ a clear image. It uses a condition to control which digit to generate.
 
 ### Image Classifier
 
-This application implements the ViT architecture.
+This application uses the CLIP approach. CLIP consists of an image encoder and a text encoder trained jointly on large
+numbers of image–text pairs. The training objective encourages matching pairs to have similar embeddings and
+non‑matching pairs to be far apart in the shared embedding space.
 
-![ImageClassifier](Images/image_classifier.png)
+To build an image classifier, one can precompute text embeddings for all class descriptions using the text encoder,
+such as “a handwritten zero”, “a handwritten one”, etc. An input image is then classified by encoding it with the
+image encoder and selecting the text embedding with the highest similarity. This effectively turns classification
+into a text‑prompt matching problem.
 
-The image is dived into patches which are then flattened and a linear layer is used to convert the dimension to the
-embedding dimension. Each patch is then treated as a token. To do classification a CLS token is appended to the patch
-tokens and it is this token that is then used to perform the classification. A linear layer converts from the embedding
-dimension to number of classes, these logits are then send through a softmax to get probabilities. The class is then
-simply the highest probability class.
+![ImageClassifier](Images/clip.png)
 
-<img src="Images/mnist.png" height="200"/>
+The CLIP approach is very generic and can be used for tasks such as text‑to‑image retrieval, image‑to‑text retrieval,
+and zero-shot classification. CLIP text embeddings can also serve as conditioning vector `c` in the image generator
+application, to generate images from text descriptions.
+
+
+#### Image Encoder
+
+The image encoder uses the ViT architecture. The image is dived into patches which are then flattened and a linear layer
+is used to convert the dimension to the internal embedding dimension. Each patch is then treated as a token. To generate
+an external embedding a CLS token is appended to the patch tokens. A linear layer converts from the internal embedding
+dimension to the wanted external embedding dimension. Finally the embedding is normalized.
+
+![ImageClassifier](Images/image_encoder.png)
+
+#### Text Encoder
+
+The text encoder uses the BERT architecture. It is very similar to the GPT architecture used by the text generator. The
+main differences are that BERT is "non-casual" and allows all tokens to attend to all other tokens and a CLS token is
+appended to create the external embedding. As for the image encoder the external embedding is created by passing the CLS
+token via a linear layer to get the correct dimension, followed by a normalization.
+
+![ImageClassifier](Images/text_encoder.png)
 
 ## PyTorch
 
