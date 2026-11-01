@@ -233,6 +233,9 @@ class ImageClassifier(application.Application):
             case _:
                 assert False
 
+        # Note that offical CLIP implementation does not use bias in the final linear projection
+        # layer while BERT and ViT do. In thic case it does not do much difference.
+
         vocab = list(string.ascii_lowercase + " " + _PAD_TOKEN)
         self._tokenizer = tok.Tokenizer(vocab)
         text_encoder = bert.BERT(
